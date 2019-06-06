@@ -12,7 +12,6 @@ import (
 
 func main() {
 	gin.DisableConsoleColor()     //禁用控制台颜色
-	gin.SetMode(constant.RunMode) //设置运行模式
 	engine := gin.New()
 	logger := logger.RouterLogger()
 	router := router.New(engine, logger)

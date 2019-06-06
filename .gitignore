@@ -1,5 +1,7 @@
 bin/*
 !bin/README.md
+!bin/develop.sh
+!bin/produce.sh
 pkg/*
 !pkg/README.md
 src/vendor/*
