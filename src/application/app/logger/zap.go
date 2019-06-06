@@ -64,7 +64,7 @@ func getLogger(filename string, level zapcore.Level) *zap.Logger {
 	}
 	encoderConfig := zap.NewProductionEncoderConfig()
 	encoderConfig.EncodeTime = func(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
-		enc.AppendString("[zap-log] " + t.Format("2006/01/02 15:04:05.000000"))
+		enc.AppendString("\033[42;34m ZAP \033[0m " + t.Format("2006/01/02 15:04:05.000000"))
 	}
 	hook := lumberjack.Logger{
 		Filename:   filename + ".log",
@@ -78,7 +78,7 @@ func getLogger(filename string, level zapcore.Level) *zap.Logger {
 	core := zapcore.NewCore(zapcore.NewConsoleEncoder(encoderConfig), writeSyncer, level)
 	logger := zap.New(core)
 	defer func() {
-		logger.Info("New ZapLogger Success", zap.String("filename", filename))
+		logger.Info("\033[32m New ZapLogger Success \033[0m", zap.String("filename", filename))
 		LoadedMap[filename] = logger
 	}()
 	return logger

@@ -25,12 +25,6 @@ func (router *router) Use() *router {
 	return router
 }
 
-func (router *router) Static() *router {
-	router.engine.Static("/assets", "./assets")
-	router.engine.StaticFile("/favicon.ico", "./assets/favicon.ico")
-	return router
-}
-
 func (router *router) Group() *router {
 	VersionGroup(router.engine, middleware.LoggerWithZap(router.logger), middleware.Recycle(router.logger))
 	return router

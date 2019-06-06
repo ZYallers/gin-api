@@ -22,5 +22,5 @@ func main() {
 		IdleTimeout: constant.HttpServerIdleTimeout,
 		Handler:     engine,
 	}
-	tool.Graceful(srv, logger, 10*time.Second)
+	tool.Graceful(srv, logger, 5*time.Second)
 }

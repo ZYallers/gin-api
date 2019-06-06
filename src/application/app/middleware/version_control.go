@@ -12,7 +12,7 @@ import (
 func VersionControl(engine *gin.Engine, apis map[string]map[string]interface{}) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		path := c.Request.URL.Path
-		if regexp.MustCompile(`^\/(v[0-9]{3,6}|assets)\/.*$`).MatchString(path) || path == "/favicon.ico" {
+		if regexp.MustCompile(`^\/v[0-9]{3,6}\/.*$`).MatchString(path) {
 			return
 		}
 
