@@ -13,14 +13,12 @@ import (
 func Graceful(srv *http.Server, logger *zap.Logger, timeout time.Duration) {
 	go func() {
 		// 服务连接
+		logger.Info("\033[32m Server LinstenAndServing... \033[0m", zap.Int("actual_pid", syscall.Getpid()))
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			//log.Fatalf("[GIN] %v Listen: %v\n", nowTimeFormatFunc(), err)
-			logger.Error("Server LinstenAndServe Error", zap.Error(err))
+			logger.Error("\033[31m Server LinstenAndServe Error \033[0m", zap.Error(err))
 			os.Exit(1)
 		}
 	}()
-
-	logger.Info("[************************ Server LinstenAndServing... ************************]", zap.Int("actual_pid", syscall.Getpid()))
 
 	// 等待中断信号以优雅地关闭服务器（设置 10 秒的超时时间）
 	quit := make(chan os.Signal, 1)
@@ -33,9 +31,9 @@ func Graceful(srv *http.Server, logger *zap.Logger, timeout time.Duration) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	if err := srv.Shutdown(ctx); err != nil {
-		logger.Error("Server Shutdown Error", zap.Error(err))
+		logger.Error("\033[31m Server Shutdown Error \033[0m", zap.Error(err))
 		os.Exit(1)
 	} else {
-		logger.Info("[************************ Server Is Shutdown ************************]", zap.Int("actual_pid", syscall.Getpid()))
+		logger.Info("\033[32m Server Is Shutdown \033[0m", zap.Int("actual_pid", syscall.Getpid()))
 	}
 }
