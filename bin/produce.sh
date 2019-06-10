@@ -1,48 +1,127 @@
 #!/bin/bash
 
-echo -e "\033[33m NowDir: `pwd` \033[0m"
-sleep 2s
-
-echo -e "\033[42;34m Reset GOPATH: \033[0m"
-export GOPATH=`pwd`
-export PATH="$GOROOT/bin:$GOPATH/bin:$PATH"
-echo -e "\033[33m Now GOPATH: `echo $GOPATH` \033[0m"
-sleep 2s
-
 ### 需要配置 Begin ###
-listenAddr="127.0.0.1:8087"
-runnerName=produce_runner_ginapi
+listenPort=":8087"
+runnerName=produce_ginapi_runner
 ### 需要配置 End ###
 
-# 先bulid生成线上跑的可执行文件
-echo -e "\033[42;34m Build ProduceRunner: \033[0m"
-go build -o ./bin/${runnerName}_tmp ./src/application/main.go
-if [ ! -f "./bin/${runnerName}_tmp" ];then
-    echo -e "\033[31m ProduceRunner Build Failed \033[0m"
-    exit 1
-fi
+echoFun(){
+    str=$1
+    color=$2
+    case $color in
+        ok)
+            echo -e "\033[32m $str \033[0m"
+        ;;
+        err)
+            echo -e "\033[31m $str \033[0m"
+        ;;
+        tip)
+            echo -e "\033[33m $str \033[0m"
+        ;;
+        title)
+            echo -e "\033[42;34m $str \033[0m"
+        ;;
+        *)
+            echo "$str"
+        ;;
+    esac
+}
 
-/bin/cp -rf ./bin/${runnerName}_tmp ./bin/$runnerName
-rm ./bin/${runnerName}_tmp
+helpFun(){
+    echoFun "操作:" title
+    echoFun "    status                                  查看Server状态" tip
+    echoFun "    build                                   生成服务Runner" tip
+    echoFun "    reload                                  平滑重启服务" tip
+    echoFun "    quit                                    停止服务" tip
+    echoFun "    help                                    查看命令的帮助信息" tip
+    echoFun "有关某个操作的详细信息，请使用 help 命令查看" tip
+    exit 0
+}
 
-echo -e "\033[32m Build ProduceRunner Finished \033[0m"
-sleep 2s
+statusFun(){
+    echoFun "Runner process:" title
+    ps auxw|head -1;ps auxw|grep "$runnerName"|grep -v grep
+    sleep 2s
+    echoFun "Lsof process:" title
+    lsof -i$listenPort
+}
 
-# 关闭已在运行的Server，如果存在
-if [ `ps aux|grep "$runnerName"|grep -v grep|wc -l` -gt 0 ];then
-    pid=`ps aux|grep "$runnerName"|grep -v grep|awk '{print $2}'`
-    echo -e "\033[33m ProduceRunner already in runned, runPid: $pid \033[0m"
-    kill $pid
-    echo -e "\033[32m Pid: $pid killed \033[0m"
-fi
+buildFun(){
+    echoFun "Now dir: `pwd`" tip
+    sleep 1s
 
-# 重新启动Server
-echo -e "\033[42;34m ProduceRunner Running: \033[0m"
-chmod +x ./bin/$runnerName
-cd ./src/application
-echo -e "\033[33m NowDir: `pwd` \033[0m"
+    echoFun "Reset GOPATH:" title
+    export GOPATH=`pwd`
+    export PATH="$GOROOT/bin:$GOPATH/bin:$PATH"
+    echoFun "Now GOPATH: `echo $GOPATH`" tip
+    sleep 1s
 
-export GIN_MODE=release
-nohup ../../bin/$runnerName > /dev/null 2>&1 &
-echo -e "\033[32m ProduceRunner Is Started \033[0m"
+    # 先bulid生成线上跑的可执行文件
+    echoFun "Build runner:" title
+    go build -o ./bin/${runnerName}_tmp ./src/application/main.go
+    sleep 1s
+    if [ ! -f "./bin/${runnerName}_tmp" ];then
+        echoFun "Build runner failed" err
+        exit 1
+    fi
+
+    /bin/cp -rf ./bin/${runnerName}_tmp ./bin/$runnerName
+    rm ./bin/${runnerName}_tmp
+    sleep 1s
+
+    echoFun "Build runner [`pwd`/bin/$runnerName] is successful" ok
+}
+
+reloadFun(){
+    if [ ! -f "./bin/$runnerName" ];then
+        echoFun "Runner [`pwd`/bin/$runnerName] is not exist" err
+        exit 1
+    fi
+
+    # 关闭已在运行的Server，如果存在
+    if [ `ps aux|grep "$runnerName"|grep -v grep|wc -l` -gt 0 ];then
+        pid=`ps aux|grep "$runnerName"|grep -v grep|awk '{print $2}'`
+        echoFun "Runner [$runnerName] already in runned, Pid: $pid" tip
+        kill $pid
+        echoFun "Pid [$pid] is killed" ok
+    fi
+
+    # 重新启动Server
+    echoFun "Runner running:" title
+    chmod +x ./bin/$runnerName
+    cd ./src/application
+    echoFun "Now dir: `pwd`" tip
+    export GIN_MODE=release
+    nohup ../../bin/$runnerName > /dev/null 2>&1 &
+    echoFun "Runner is started" ok
+}
+
+quitFun(){
+    if [ `ps aux|grep "$runnerName"|grep -v grep|wc -l` -gt 0 ];then
+        pid=`ps aux|grep "$runnerName"|grep -v grep|awk '{print $2}'`
+        echoFun "Runner [$runnerName] already in runned, Pid: $pid" tip
+        kill $pid
+        echoFun "Pid [$pid] is killed" ok
+    fi
+    echoFun "Runner is quited" ok
+}
+
+case $1 in
+        status)
+            statusFun
+        ;;
+        build)
+            buildFun
+        ;;
+        quit)
+            quitFun
+        ;;
+        reload)
+            reloadFun
+        ;;
+        *)
+            helpFun
+        ;;
+esac
+exit 0
 ### End ###

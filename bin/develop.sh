@@ -1,88 +1,166 @@
 #!/bin/bash
 
-echo -e "\033[33m NowDir: `pwd` \033[0m"
-sleep 1s
-
-echo -e "\033[42;34m Reset GOPATH: \033[0m"
-export GOPATH=`pwd`
-export PATH="$GOROOT/bin:$GOPATH/bin:$PATH"
-echo -e "\033[33m Now GOPATH: `echo $GOPATH` \033[0m"
-sleep 2s
-
-cd ./src
-echo -e "\033[33m NowDir: `pwd` \033[0m"
-sleep 1s
-
-echo -e "\033[42;34m Govendor Get And Init: \033[0m"
-if [ ! -f "../bin/govendor" ];then
-    # 先下载 govendor
-    go get github.com/kardianos/govendor
-    echo -e "\033[32m  Govendor Getted \033[0m"
-    sleep 2s
-
-    # 初始化 govendor
-    govendor init
-    govendor add +e
-    echo -e "\033[32m Govendor Inited \033[0m"
-    sleep 2s
-else
-    echo -e "\033[32m Govendor Inited \033[0m"
-    sleep 2s
-fi
-
-echo -e "\033[42;34m Fresh Get: \033[0m"
-if [ ! -f "../bin/fresh" ];then
-    # 热启动 fresh 下载
-    go get github.com/pilu/fresh
-    echo -e "\033[32m Fresh Getted \033[0m"
-    sleep 2s
-else
-    echo -e "\033[32m Fresh Getted \033[0m"
-    sleep 2s
-fi
-
-# govendor 同步
-echo -e "\033[42;34m Govendor Sync: \033[0m"
-govendor sync
-echo -e "\033[32m Govendor Sync Finished \033[0m"
-sleep 2s
-
-# fresh 启动
-cd ./application
-echo -e "\033[33m NowDir: `pwd` \033[0m"
-sleep 1s
-
 ### 需要配置 Begin ###
+listenPort=":8087"
 confile=fresh_ginapi.conf
 logfile=./log/api.gin.com.log
-listenAddr="127.0.0.1:8087"
 ### 需要配置 End ###
 
-if [ ! -f "$confile" ];then
-    echo -e "\033[31m 'Fresh.conf' Not Exists \033[0m"
-    exit 1
-fi
+echoFun(){
+    str=$1
+    color=$2
+    case $color in
+        ok)
+            echo -e "\033[32m $str \033[0m"
+        ;;
+        err)
+            echo -e "\033[31m $str \033[0m"
+        ;;
+        tip)
+            echo -e "\033[33m $str \033[0m"
+        ;;
+        title)
+            echo -e "\033[42;34m $str \033[0m"
+        ;;
+        *)
+            echo "$str"
+        ;;
+    esac
+}
 
-echo -e "\033[42;34m Server Running: \033[0m"
-# 删除之前启动的fresh进程
-if [ `ps aux|grep "fresh -c $confile"|grep -v grep|wc -l` -gt 0 ];then
-    pid=`ps aux|grep "fresh -c $confile"|grep -v grep|awk '{print $2}'`
-    echo -e "\033[33m Fresh -c $confile already in runned, runPid: $pid \033[0m"
-    kill -9 $pid
-    echo -e "\033[32m Pid: $pid killed \033[0m"
-fi
-sleep 2s
+helpFun(){
+    echoFun "操作:" title
+    echoFun "    status                                  查看Server状态" tip
+    echoFun "    restart                                 重载服务" tip
+    echoFun "    stop                                    热重载服务" tip
+    echoFun "    help                                    查看命令的帮助信息" tip
+    echoFun "有关某个操作的详细信息，请使用 help 命令查看" tip
+    exit 0
+}
 
-# 删除之前程序占用的端口进程
-if [ `lsof -n -P|grep "$listenAddr"|grep LISTEN|wc -l` -gt 0 ];then
-    pid=`lsof -n -P|grep "$listenAddr"|grep LISTEN|awk '{print $2}'`
-    echo -e "\033[33m Listen tcp $listenAddr address already in use, usePid: $pid \033[0m"
-    kill -9 $pid
-    echo -e "\033[32m Pid: $pid killed \033[0m"
-fi
-sleep 2s
+statusFun(){
+    echoFun "Fresh process:" title
+    ps auxw|head -1;ps auxw|grep "fresh -c $confile"|grep -v grep
+    sleep 2s
+    echoFun "Fresh runner process:" title
+    lsof -i$listenPort
+}
 
-# 重新启动fresh守护进程
-nohup fresh -c $confile > $logfile 2>&1 &
-echo -e "\033[32m Server Started \033[0m"
+restartFun(){
+    echoFun "Now dir: `pwd`" tip
+    sleep 1s
+
+    echoFun "Reset GOPATH:" title
+    export GOPATH=`pwd`
+    export PATH="$GOROOT/bin:$GOPATH/bin:$PATH"
+    echoFun "Now GOPATH: `echo $GOPATH`" tip
+    sleep 1s
+
+    cd ./src
+    echoFun "Now dir: `pwd`" tip
+    sleep 1s
+
+    echoFun "Govendor get and init:" title
+    if [ ! -f "../bin/govendor" ];then
+        # 先下载 govendor
+        go get github.com/kardianos/govendor
+        echoFun "Govendor is getted" ok
+        sleep 1s
+
+        # 初始化 govendor
+        govendor init
+        govendor add +e
+        echoFun "Govendor is inited" ok
+        sleep 1s
+    else
+        echoFun "Govendor is inited" tip
+        sleep 1s
+    fi
+
+    echoFun "Fresh get:" title
+    if [ ! -f "../bin/fresh" ];then
+        # 热启动 fresh 下载
+        go get github.com/pilu/fresh
+        echoFun "Fresh is getted" ok
+        sleep 1s
+    else
+        echoFun "Fresh is getted" tip
+        sleep 1s
+    fi
+
+    # govendor 同步
+    echoFun "Govendor sync:" title
+    govendor sync
+    echoFun "Govendor is synced" ok
+    sleep 1s
+
+    # fresh 启动
+    cd ./application
+    echoFun "Now dir: `pwd`" tip
+    sleep 1s
+
+    if [ ! -f "$confile" ];then
+        echo " File [$confile] is not exists" err
+        exit 1
+    fi
+
+    echoFun "Server running:" title
+    # 删除之前启动的fresh进程
+    if [ `ps aux|grep "fresh -c $confile"|grep -v grep|wc -l` -gt 0 ];then
+        pid=`ps aux|grep "fresh -c $confile"|grep -v grep|awk '{print $2}'`
+        echoFun "Fresh [$confile] already in runned, Pid: $pid" tip
+        kill $pid
+        echo "Pid [$pid] is killed" ok
+    fi
+    sleep 1s
+
+    # 删除之前程序占用的端口进程
+    if [ `lsof -n -P|grep "$listenPort"|grep LISTEN|wc -l` -gt 0 ];then
+        pid=`lsof -n -P|grep "$listenPort"|grep LISTEN|awk '{print $2}'`
+        echoFun "Listen tcp [$listenPort] port already in use, Pid: $pid" tip
+        kill $pid
+        echoFun "Pid [$pid] is killed" ok
+    fi
+    sleep 1s
+
+    # 重新启动fresh守护进程
+    nohup fresh -c $confile > $logfile 2>&1 &
+    echo "Server is started" ok
+}
+
+stopFun(){
+    # 删除之前启动的fresh进程
+    if [ `ps aux|grep "fresh -c $confile"|grep -v grep|wc -l` -gt 0 ];then
+        pid=`ps aux|grep "fresh -c $confile"|grep -v grep|awk '{print $2}'`
+        echoFun "Fresh [$confile] already in runned, Pid: $pid" tip
+        kill $pid
+        echoFun "Pid [$pid] is killed" ok
+        sleep 1s
+    fi
+    # 删除之前程序占用的端口进程
+    if [ `lsof -n -P|grep "$listenPort"|grep LISTEN|wc -l` -gt 0 ];then
+        pid=`lsof -n -P|grep "$listenPort"|grep LISTEN|awk '{print $2}'`
+        echoFun "Listen tcp [$listenPort] port already in use, Pid: $pid" tip
+        kill $pid
+        echoFun "Pid [$pid] is killed" ok
+        sleep 1s
+    fi
+    echoFun "Server is stoped" ok
+}
+
+case $1 in
+        status)
+            statusFun
+        ;;
+        stop)
+            stopFun
+        ;;
+        restart)
+            restartFun
+        ;;
+        *)
+            helpFun
+        ;;
+esac
+exit 0
 ### End ###
