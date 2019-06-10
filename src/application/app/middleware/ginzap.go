@@ -32,7 +32,7 @@ func LoggerWithZap(logger *zap.Logger) gin.HandlerFunc {
 				logger.Error(err)
 			}
 		} else {
-			if gin.IsDebugging() {
+			if gin.IsDebugging() || latency >= 3 {
 				logger.Info(path,
 					zap.Int("status", c.Writer.Status()),
 					zap.String("method", c.Request.Method),
