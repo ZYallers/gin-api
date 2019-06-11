@@ -1,9 +1,10 @@
 #!/bin/bash
 
 ### 需要配置 Begin ###
-listenPort=":8087"
-confile=fresh_ginapi.conf
-logfile=./log/api.gin.com.log
+appName=""
+appHttpServerAddr=""
+appLogDir=""
+freshConfigFile=""
 ### 需要配置 End ###
 
 echoFun(){
@@ -31,6 +32,7 @@ echoFun(){
 helpFun(){
     echoFun "操作:" title
     echoFun "    status                                  查看Server状态" tip
+    echoFun "    sync                                    初始化&同步服务" tip
     echoFun "    restart                                 重载服务" tip
     echoFun "    stop                                    热重载服务" tip
     echoFun "    help                                    查看命令的帮助信息" tip
@@ -38,22 +40,71 @@ helpFun(){
     exit 0
 }
 
-statusFun(){
-    echoFun "Fresh process:" title
-    ps auxw|head -1;ps auxw|grep "fresh -c $confile"|grep -v grep
-    sleep 2s
-    echoFun "Fresh runner process:" title
-    lsof -i$listenPort
-}
-
-restartFun(){
-    echoFun "Now dir: `pwd`" tip
-    sleep 1s
-
+resetPathFun(){
     echoFun "Reset GOPATH:" title
     export GOPATH=`pwd`
-    export PATH="$GOROOT/bin:$GOPATH/bin:$PATH"
     echoFun "Now GOPATH: `echo $GOPATH`" tip
+
+    echoFun "Add PATH:" title
+    export PATH="$GOROOT/bin:$GOPATH/bin:$PATH"
+    echoFun "Now PATH: `echo $PATH`" tip
+}
+
+initFun(){
+    appfile="`pwd`/src/application/app/constant/app.go"
+    if [ ! -f "$appfile" ];then
+        echoFun "File [$appfile] is not exist" err
+        exit 1
+    fi
+
+    appName=`cat $appfile|grep "Name"|awk -F '"' '{print $2}'`
+    if [ "$appName" == "" ];then
+        echoFun "AppName is null" err
+        exit 1
+    fi
+    echoFun "AppName: $appName" tip
+
+    appHttpServerAddr=`cat $appfile|grep "HttpServerAddr"|awk -F '"' '{print $2}'`
+    if [ "$appHttpServerAddr" == "" ];then
+        echoFun "AppHttpServerAddr is null" err
+        exit 1
+    fi
+    echoFun "AppHttpServerAddr: $appHttpServerAddr" tip
+
+    appLogDir=`cat $appfile|grep "LogDir"|awk -F '"' '{print $2}'`
+    if [ "$appLogDir" == "" ];then
+        echoFun "AppLogDir is null" err
+        exit 1
+    fi
+    echoFun "AppLogDir: $appLogDir" tip
+
+    freshConfigFile="fresh_`echo "$appName"|awk -F '.' '{print $1}'`.conf"
+    filePath="`pwd`/src/application/$freshConfigFile"
+    if [ ! -f "$filePath" ];then
+        echoFun "FreshConfigFile [$filePath] is not exist" err
+        exit 1
+    fi
+    echoFun "FreshConfigFileDir: $filePath" tip
+}
+
+statusFun(){
+    initFun
+    sleep 1s
+
+    echoFun "Fresh process:" title
+    ps auxw|head -1;ps auxw|grep "fresh -c $freshConfigFile"|grep -v grep
+    sleep 1s
+
+    echoFun "Lsof process:" title
+    port=`echo $appHttpServerAddr|awk -F ':' '{print $2}'`
+    lsof -i tcp:$port
+}
+
+syncFun(){
+    initFun
+    sleep 1s
+
+    resetPathFun
     sleep 1s
 
     cd ./src
@@ -62,12 +113,17 @@ restartFun(){
 
     echoFun "Govendor get and init:" title
     if [ ! -f "../bin/govendor" ];then
-        # 先下载 govendor
         go get github.com/kardianos/govendor
+        if [ ! -f "../bin/govendor" ];then
+            echoFun "Govendor get failed" err
+            exit 1
+        fi
+        if [ ! -x "../bin/govendor" ];then
+            chmod +x "../bin/govendor"
+        fi
         echoFun "Govendor is getted" ok
         sleep 1s
 
-        # 初始化 govendor
         govendor init
         govendor add +e
         echoFun "Govendor is inited" ok
@@ -79,8 +135,14 @@ restartFun(){
 
     echoFun "Fresh get:" title
     if [ ! -f "../bin/fresh" ];then
-        # 热启动 fresh 下载
         go get github.com/pilu/fresh
+        if [ ! -f "../bin/fresh" ];then
+            echoFun "Fresh get failed" err
+            exit 1
+        fi
+        if [ ! -x "../bin/fresh" ];then
+            chmod +x "../bin/fresh"
+        fi
         echoFun "Fresh is getted" ok
         sleep 1s
     else
@@ -92,71 +154,61 @@ restartFun(){
     echoFun "Govendor sync:" title
     govendor sync
     echoFun "Govendor is synced" ok
+}
+
+restartFun(){
+    initFun
     sleep 1s
 
-    # fresh 启动
-    cd ./application
-    echoFun "Now dir: `pwd`" tip
+    resetPathFun
     sleep 1s
 
-    if [ ! -f "$confile" ];then
-        echo " File [$confile] is not exists" err
-        exit 1
+    cd ./src/application
+    if [ ! -d "$appLogDir" ];then
+        echoFun "AppLogDir [$appLogDir] is not exist" err
+        exit
     fi
 
-    echoFun "Server running:" title
-    # 删除之前启动的fresh进程
-    if [ `ps aux|grep "fresh -c $confile"|grep -v grep|wc -l` -gt 0 ];then
-        pid=`ps aux|grep "fresh -c $confile"|grep -v grep|awk '{print $2}'`
-        echoFun "Fresh [$confile] already in runned, Pid: $pid" tip
-        kill $pid
-        echo "Pid [$pid] is killed" ok
-    fi
-    sleep 1s
-
-    # 删除之前程序占用的端口进程
-    if [ `lsof -n -P|grep "$listenPort"|grep LISTEN|wc -l` -gt 0 ];then
-        pid=`lsof -n -P|grep "$listenPort"|grep LISTEN|awk '{print $2}'`
-        echoFun "Listen tcp [$listenPort] port already in use, Pid: $pid" tip
-        kill $pid
-        echoFun "Pid [$pid] is killed" ok
-    fi
-    sleep 1s
+    stopFun $freshConfigFile $appHttpServerAddr
 
     # 重新启动fresh守护进程
-    nohup fresh -c $confile > $logfile 2>&1 &
-    echo "Server is started" ok
+    nohup fresh -c $freshConfigFile > ${appLogDir}/${appName}.log 2>&1 &
 }
 
 stopFun(){
     # 删除之前启动的fresh进程
-    if [ `ps aux|grep "fresh -c $confile"|grep -v grep|wc -l` -gt 0 ];then
-        pid=`ps aux|grep "fresh -c $confile"|grep -v grep|awk '{print $2}'`
-        echoFun "Fresh [$confile] already in runned, Pid: $pid" tip
+    if [ `ps aux|grep "fresh -c $1"|grep -v grep|wc -l` -gt 0 ];then
+        pid=`ps aux|grep "fresh -c $1"|grep -v grep|awk '{print $2}'`
+        echoFun "Fresh [$1] already in runned, Pid: $pid" tip
         kill $pid
         echoFun "Pid [$pid] is killed" ok
-        sleep 1s
     fi
+
     # 删除之前程序占用的端口进程
-    if [ `lsof -n -P|grep "$listenPort"|grep LISTEN|wc -l` -gt 0 ];then
-        pid=`lsof -n -P|grep "$listenPort"|grep LISTEN|awk '{print $2}'`
-        echoFun "Listen tcp [$listenPort] port already in use, Pid: $pid" tip
+    port=`echo $2|awk -F ':' '{print $2}'`
+    if [ `lsof -i tcp:$port|grep LISTEN|wc -l` -gt 0 ];then
+        pid=`lsof -i tcp:$port|grep LISTEN|awk '{print $2}'`
+        echoFun "Listen tcp [$2] addr already in use, Pid: $pid" tip
         kill $pid
         echoFun "Pid [$pid] is killed" ok
-        sleep 1s
     fi
-    echoFun "Server is stoped" ok
 }
 
 case $1 in
         status)
             statusFun
         ;;
+        sync)
+            syncFun
+        ;;
         stop)
-            stopFun
+            initFun
+            stopFun $freshConfigFile $appHttpServerAddr
+            echoFun "Server is stoped" ok
         ;;
         restart)
             restartFun
+            echoFun "Server is restarted" ok
         ;;
         *)
             helpFun

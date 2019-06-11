@@ -32,15 +32,15 @@ func LoggerWithZap(logger *zap.Logger) gin.HandlerFunc {
 				logger.Error(err)
 			}
 		} else {
-			if gin.IsDebugging() || latency >= 3 {
-				logger.Info(path,
+			// 只在debugMode下记录，或者请求超过3秒
+			if gin.IsDebugging() || latency >= 3*time.Second {
+				logger.Info("\033[33m "+path+" \033[0m",
 					zap.Int("status", c.Writer.Status()),
 					zap.String("method", c.Request.Method),
-					zap.Duration("latency", latency),
-					zap.String("path", path),
 					zap.String("query", query),
+					zap.Duration("latency", latency),
 					zap.String("ip", c.ClientIP()),
-					zap.String("user-agent", c.Request.UserAgent()),
+					zap.String("agent", c.Request.UserAgent()),
 				)
 			}
 		}

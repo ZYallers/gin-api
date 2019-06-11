@@ -1,8 +1,10 @@
 #!/bin/bash
 
 ### 需要配置 Begin ###
-listenPort=":8087"
-runnerName=produce_ginapi_runner
+appName=""
+appHttpServerAddr=""
+appLogDir=""
+produceRunnerName=""
 ### 需要配置 End ###
 
 echoFun(){
@@ -30,7 +32,7 @@ echoFun(){
 helpFun(){
     echoFun "操作:" title
     echoFun "    status                                  查看Server状态" tip
-    echoFun "    build                                   生成服务Runner" tip
+    echoFun "    build                                   生成ProduceRunner" tip
     echoFun "    reload                                  平滑重启服务" tip
     echoFun "    quit                                    停止服务" tip
     echoFun "    help                                    查看命令的帮助信息" tip
@@ -38,72 +40,120 @@ helpFun(){
     exit 0
 }
 
+resetPathFun(){
+    echoFun "Reset GOPATH:" title
+    export GOPATH=`pwd`
+    echoFun "Now GOPATH: `echo $GOPATH`" tip
+
+    echoFun "Add PATH:" title
+    export PATH="$GOROOT/bin:$GOPATH/bin:$PATH"
+    echoFun "Now PATH: `echo $PATH`" tip
+}
+
+initFun(){
+    appfile="`pwd`/src/application/app/constant/app.go"
+    if [ ! -f "$appfile" ];then
+        echoFun "File [$appfile] is not exist" err
+        exit 1
+    fi
+
+    appName=`cat $appfile|grep "Name"|awk -F '"' '{print $2}'`
+    if [ "$appName" == "" ];then
+        echoFun "AppName is null" err
+        exit 1
+    fi
+    echoFun "AppName: $appName" tip
+
+    appHttpServerAddr=`cat $appfile|grep "HttpServerAddr"|awk -F '"' '{print $2}'`
+    if [ "$appHttpServerAddr" == "" ];then
+        echoFun "appHttpServerAddr is null" err
+        exit 1
+    fi
+    echoFun "AppHttpServerAddr: $appHttpServerAddr" tip
+
+    appLogDir=`cat $appfile|grep "LogDir"|awk -F '"' '{print $2}'`
+    if [ "$appLogDir" == "" ];then
+        echoFun "AppLogDir is null" err
+        exit 1
+    fi
+    echoFun "AppLogDir: $appLogDir" tip
+
+    produceRunnerName="produceRunner_`echo "$appName"|awk -F '.' '{print $1}'`"
+    if [ "$produceRunnerName" == "" ];then
+        echoFun "ProduceRunnerName is null" err
+        exit 1
+    fi
+    echoFun "ProduceRunnerName: $produceRunnerName" tip
+}
+
 statusFun(){
-    echoFun "Runner process:" title
-    ps auxw|head -1;ps auxw|grep "$runnerName"|grep -v grep
-    sleep 2s
+    initFun
+    sleep 1s
+
+    echoFun "ProduceRunner process:" title
+    ps auxw|head -1;ps auxw|grep "$produceRunnerName"|grep -v grep
+    sleep 1s
+
     echoFun "Lsof process:" title
-    lsof -i$listenPort
+    port=`echo $appHttpServerAddr|awk -F ':' '{print $2}'`
+    lsof -i tcp:$port
 }
 
 buildFun(){
-    echoFun "Now dir: `pwd`" tip
+    initFun
     sleep 1s
 
-    echoFun "Reset GOPATH:" title
-    export GOPATH=`pwd`
-    export PATH="$GOROOT/bin:$GOPATH/bin:$PATH"
-    echoFun "Now GOPATH: `echo $GOPATH`" tip
+    resetPathFun
     sleep 1s
 
-    # 先bulid生成线上跑的可执行文件
-    echoFun "Build runner:" title
-    go build -o ./bin/${runnerName}_tmp ./src/application/main.go
+    echoFun "Build produceRunner:" title
+    go build -v -x -o ./bin/${produceRunnerName}_tmp ./src/application/main.go
     sleep 1s
-    if [ ! -f "./bin/${runnerName}_tmp" ];then
-        echoFun "Build runner failed" err
+    if [ ! -f "./bin/${produceRunnerName}_tmp" ];then
+        echoFun "Build produceRunner failed" err
         exit 1
     fi
 
-    /bin/cp -rf ./bin/${runnerName}_tmp ./bin/$runnerName
-    rm ./bin/${runnerName}_tmp
+    /bin/cp -rf ./bin/${produceRunnerName}_tmp ./bin/$produceRunnerName
+    rm ./bin/${produceRunnerName}_tmp
     sleep 1s
 
-    echoFun "Build runner [`pwd`/bin/$runnerName] is successful" ok
+    echoFun "Build produceRunner [`pwd`/bin/$produceRunnerName] is successful" ok
 }
 
 reloadFun(){
-    if [ ! -f "./bin/$runnerName" ];then
-        echoFun "Runner [`pwd`/bin/$runnerName] is not exist" err
+    initFun
+    sleep 1s
+
+    if [ ! -f "./bin/$produceRunnerName" ];then
+        echoFun "ProduceRunner [`pwd`/bin/$produceRunnerName] is not exist" err
         exit 1
     fi
 
-    # 关闭已在运行的Server，如果存在
-    if [ `ps aux|grep "$runnerName"|grep -v grep|wc -l` -gt 0 ];then
-        pid=`ps aux|grep "$runnerName"|grep -v grep|awk '{print $2}'`
-        echoFun "Runner [$runnerName] already in runned, Pid: $pid" tip
-        kill $pid
-        echoFun "Pid [$pid] is killed" ok
+    quitFun $produceRunnerName
+
+    echoFun "ProduceRunner running:" title
+    if [ ! -x "./bin/$produceRunnerName" ];then
+        chmod +x ./bin/$produceRunnerName
     fi
 
-    # 重新启动Server
-    echoFun "Runner running:" title
-    chmod +x ./bin/$runnerName
     cd ./src/application
-    echoFun "Now dir: `pwd`" tip
+    if [ ! -d "$appLogDir" ];then
+        echoFun "AppLogDir [$appLogDir] is not exist" err
+        exit
+    fi
+
     export GIN_MODE=release
-    nohup ../../bin/$runnerName > /dev/null 2>&1 &
-    echoFun "Runner is started" ok
+    nohup ../../bin/$produceRunnerName > ${appLogDir}/${appName}.log 2>&1 &
 }
 
 quitFun(){
-    if [ `ps aux|grep "$runnerName"|grep -v grep|wc -l` -gt 0 ];then
-        pid=`ps aux|grep "$runnerName"|grep -v grep|awk '{print $2}'`
-        echoFun "Runner [$runnerName] already in runned, Pid: $pid" tip
+    if [ `ps aux|grep "$1"|grep -v grep|wc -l` -gt 0 ];then
+        pid=`ps aux|grep "$1"|grep -v grep|awk '{print $2}'`
+        echoFun "ProduceRunner [$1] already in runned, Pid: $pid" tip
         kill $pid
         echoFun "Pid [$pid] is killed" ok
     fi
-    echoFun "Runner is quited" ok
 }
 
 case $1 in
@@ -114,10 +164,14 @@ case $1 in
             buildFun
         ;;
         quit)
-            quitFun
+            initFun
+            sleep 1s
+            quitFun $produceRunnerName
+            echoFun "ProduceRunner is quited" ok
         ;;
         reload)
             reloadFun
+            echoFun "ProduceRunner is reloaded" ok
         ;;
         *)
             helpFun
