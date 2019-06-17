@@ -1,11 +1,11 @@
 #!/bin/bash
 
-### 需要配置 Begin ###
+### 需要配置 ###
 appName=""
 appHttpServerAddr=""
 appLogDir=""
 freshConfigFile=""
-### 需要配置 End ###
+### 需要配置 ###
 
 echoFun(){
     str=$1
@@ -32,7 +32,7 @@ echoFun(){
 helpFun(){
     echoFun "操作:" title
     echoFun "    status                                  查看Server状态" tip
-    echoFun "    sync                                    初始化&同步服务" tip
+    echoFun "    sync                                    同步vendor资源" tip
     echoFun "    restart                                 重载服务" tip
     echoFun "    stop                                    热重载服务" tip
     echoFun "    help                                    查看命令的帮助信息" tip
@@ -51,7 +51,7 @@ resetPathFun(){
 }
 
 initFun(){
-    appfile="`pwd`/src/application/app/constant/app.go"
+    appfile="`pwd`/src/code/app/constant/app.go"
     if [ ! -f "$appfile" ];then
         echoFun "File [$appfile] is not exist" err
         exit 1
@@ -79,7 +79,7 @@ initFun(){
     echoFun "AppLogDir: $appLogDir" tip
 
     freshConfigFile="fresh_`echo "$appName"|awk -F '.' '{print $1}'`.conf"
-    filePath="`pwd`/src/application/$freshConfigFile"
+    filePath="`pwd`/src/code/$freshConfigFile"
     if [ ! -f "$filePath" ];then
         echoFun "FreshConfigFile [$filePath] is not exist" err
         exit 1
@@ -89,81 +89,88 @@ initFun(){
 
 statusFun(){
     initFun
-    sleep 1s
+    sleep 2s
 
     echoFun "Fresh process:" title
     ps auxw|head -1;ps auxw|grep "fresh -c $freshConfigFile"|grep -v grep
-    sleep 1s
 
-    echoFun "Lsof process:" title
+    echoFun "Tcp process:" title
     port=`echo $appHttpServerAddr|awk -F ':' '{print $2}'`
     lsof -i tcp:$port
 }
 
 syncFun(){
     initFun
-    sleep 1s
+    sleep 2s
 
     resetPathFun
-    sleep 1s
+    sleep 2s
 
     cd ./src
-    echoFun "Now dir: `pwd`" tip
-    sleep 1s
 
-    echoFun "Govendor get and init:" title
-    if [ ! -f "../bin/govendor" ];then
-        go get github.com/kardianos/govendor
-        if [ ! -f "../bin/govendor" ];then
-            echoFun "Govendor get failed" err
+    echoFun "Go get glide:" title
+    if [ ! -f "../bin/glide" ];then
+        mkdir -p ./github.com/Masterminds
+        cd ./github.com/Masterminds
+        git clone -b v0.13.2 https://github.com/Masterminds/glide.git
+        cd ../../
+        go install -v -x github.com/Masterminds/glide
+        if [ ! -f "../bin/glide" ];then
+            echoFun "Go get glide failed" err
             exit 1
         fi
-        if [ ! -x "../bin/govendor" ];then
-            chmod +x "../bin/govendor"
+        if [ ! -x "../bin/glide" ];then
+            chmod u+x "../bin/glide"
         fi
-        echoFun "Govendor is getted" ok
-        sleep 1s
-
-        govendor init
-        govendor add +e
-        echoFun "Govendor is inited" ok
-        sleep 1s
+        echoFun "Go get glide succeed" ok
     else
-        echoFun "Govendor is inited" tip
-        sleep 1s
+        echoFun "Glide is go getted" tip
     fi
+    sleep 2s
 
-    echoFun "Fresh get:" title
+    cd ./code
+
+    echoFun "Glide install:" title
+    if [[ ! -f "./glide.lock" && ! -f "./glide.yaml" ]];then
+        echoFun "Glide lock or yaml file is not exist" err
+        exit 1
+    fi
+    glide install
+    echoFun "Glide is installed" ok
+    sleep 2s
+
+    cd ../
+    echoFun "Go get fresh:" title
     if [ ! -f "../bin/fresh" ];then
-        go get github.com/pilu/fresh
+        if [ ! -d "./golang.org/x/sys" ];then
+            mkdir -p ./golang.org/x/sys
+        fi
+        /bin/cp -rf ./code/vendor/golang.org/x/sys ./golang.org/x
+        go get -v -x github.com/pilu/fresh
         if [ ! -f "../bin/fresh" ];then
-            echoFun "Fresh get failed" err
+            echoFun "Go get fresh failed" err
             exit 1
         fi
         if [ ! -x "../bin/fresh" ];then
-            chmod +x "../bin/fresh"
+            chmod u+x "../bin/fresh"
         fi
-        echoFun "Fresh is getted" ok
-        sleep 1s
+        echoFun "Go get fresh succeed" ok
     else
-        echoFun "Fresh is getted" tip
-        sleep 1s
+        echoFun "Fresh is go getted" tip
     fi
-
-    # govendor 同步
-    echoFun "Govendor sync:" title
-    govendor sync
-    echoFun "Govendor is synced" ok
+    rm -rf ./github.com
+    rm -rf ./golang.org
+    echoFun "Glide is synced" ok
 }
 
 restartFun(){
     initFun
-    sleep 1s
+    sleep 2s
 
     resetPathFun
-    sleep 1s
+    sleep 2s
 
-    cd ./src/application
+    cd ./src/code
     if [ ! -d "$appLogDir" ];then
         echoFun "AppLogDir [$appLogDir] is not exist" err
         exit
@@ -173,6 +180,7 @@ restartFun(){
 
     # 重新启动fresh守护进程
     nohup fresh -c $freshConfigFile > ${appLogDir}/${appName}.log 2>&1 &
+    echoFun "Server is restarted" ok
 }
 
 stopFun(){
@@ -203,12 +211,12 @@ case $1 in
         ;;
         stop)
             initFun
+            sleep 2s
             stopFun $freshConfigFile $appHttpServerAddr
             echoFun "Server is stoped" ok
         ;;
         restart)
             restartFun
-            echoFun "Server is restarted" ok
         ;;
         *)
             helpFun

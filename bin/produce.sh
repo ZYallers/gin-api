@@ -1,11 +1,11 @@
 #!/bin/bash
 
-### 需要配置 Begin ###
+### 需要配置 ###
 appName=""
 appHttpServerAddr=""
 appLogDir=""
 produceRunnerName=""
-### 需要配置 End ###
+### 需要配置 ###
 
 echoFun(){
     str=$1
@@ -32,6 +32,7 @@ echoFun(){
 helpFun(){
     echoFun "操作:" title
     echoFun "    status                                  查看Server状态" tip
+    echoFun "    sync                                    同步vendor资源" tip
     echoFun "    build                                   生成ProduceRunner" tip
     echoFun "    reload                                  平滑重启服务" tip
     echoFun "    quit                                    停止服务" tip
@@ -51,7 +52,7 @@ resetPathFun(){
 }
 
 initFun(){
-    appfile="`pwd`/src/application/app/constant/app.go"
+    appfile="`pwd`/src/code/app/constant/app.go"
     if [ ! -f "$appfile" ];then
         echoFun "File [$appfile] is not exist" err
         exit 1
@@ -88,27 +89,67 @@ initFun(){
 
 statusFun(){
     initFun
-    sleep 1s
+    sleep 2s
 
     echoFun "ProduceRunner process:" title
     ps auxw|head -1;ps auxw|grep "$produceRunnerName"|grep -v grep
-    sleep 1s
 
-    echoFun "Lsof process:" title
+    echoFun "Tcp process:" title
     port=`echo $appHttpServerAddr|awk -F ':' '{print $2}'`
     lsof -i tcp:$port
 }
 
-buildFun(){
+syncFun(){
     initFun
-    sleep 1s
+    sleep 2s
 
     resetPathFun
-    sleep 1s
+    sleep 2s
+
+    cd ./src
+
+    echoFun "Go get glide:" title
+    if [ ! -f "../bin/glide" ];then
+        mkdir -p ./github.com/Masterminds
+        cd ./github.com/Masterminds
+        git clone -b v0.13.2 https://github.com/Masterminds/glide.git
+        cd ../../
+        go install -v -x github.com/Masterminds/glide
+        if [ ! -f "../bin/glide" ];then
+            echoFun "Go get glide failed" err
+            exit 1
+        fi
+        if [ ! -x "../bin/glide" ];then
+            chmod u+x "../bin/glide"
+        fi
+        echoFun "Go get glide succeed" ok
+    else
+        echoFun "Glide is go getted" tip
+    fi
+    rm -rf ./github.com
+    sleep 2s
+
+    cd ./code
+
+    echoFun "Glide install:" title
+    if [[ ! -f "./glide.lock" && ! -f "./glide.yaml" ]];then
+        echoFun "Glide lock or yaml file is not exist" err
+        exit 1
+    fi
+    glide install -v
+    echoFun "Glide is synced" ok
+}
+
+buildFun(){
+    initFun
+    sleep 2s
+
+    resetPathFun
+    sleep 2s
 
     echoFun "Build produceRunner:" title
-    go build -v -x -o ./bin/${produceRunnerName}_tmp ./src/application/main.go
-    sleep 1s
+    go build -v -x -o ./bin/${produceRunnerName}_tmp ./src/code/main.go
+    sleep 2s
     if [ ! -f "./bin/${produceRunnerName}_tmp" ];then
         echoFun "Build produceRunner failed" err
         exit 1
@@ -116,14 +157,12 @@ buildFun(){
 
     /bin/cp -rf ./bin/${produceRunnerName}_tmp ./bin/$produceRunnerName
     rm ./bin/${produceRunnerName}_tmp
-    sleep 1s
-
     echoFun "Build produceRunner [`pwd`/bin/$produceRunnerName] is successful" ok
 }
 
 reloadFun(){
     initFun
-    sleep 1s
+    sleep 2s
 
     if [ ! -f "./bin/$produceRunnerName" ];then
         echoFun "ProduceRunner [`pwd`/bin/$produceRunnerName] is not exist" err
@@ -134,10 +173,10 @@ reloadFun(){
 
     echoFun "ProduceRunner running:" title
     if [ ! -x "./bin/$produceRunnerName" ];then
-        chmod +x ./bin/$produceRunnerName
+        chmod u+x ./bin/$produceRunnerName
     fi
 
-    cd ./src/application
+    cd ./src/code
     if [ ! -d "$appLogDir" ];then
         echoFun "AppLogDir [$appLogDir] is not exist" err
         exit
@@ -145,6 +184,7 @@ reloadFun(){
 
     export GIN_MODE=release
     nohup ../../bin/$produceRunnerName > ${appLogDir}/${appName}.log 2>&1 &
+    echoFun "ProduceRunner is reloaded" ok
 }
 
 quitFun(){
@@ -160,18 +200,20 @@ case $1 in
         status)
             statusFun
         ;;
+        sync)
+            syncFun
+        ;;
         build)
             buildFun
         ;;
         quit)
             initFun
-            sleep 1s
+            sleep 2s
             quitFun $produceRunnerName
             echoFun "ProduceRunner is quited" ok
         ;;
         reload)
             reloadFun
-            echoFun "ProduceRunner is reloaded" ok
         ;;
         *)
             helpFun

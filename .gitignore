@@ -2,8 +2,8 @@ bin/*
 !bin/README.md
 !bin/develop.sh
 !bin/produce.sh
+!bin/produceRunner_gin-api
 pkg/*
 !pkg/README.md
-src/vendor/*
-!src/vendor/vendor.json
-src/application/log/*
+src/code/log/*
+src/code/vendor/*

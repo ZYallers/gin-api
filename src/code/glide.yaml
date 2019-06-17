@@ -1,0 +1,39 @@
+package: code
+homepage: http://www.zyall.com
+license: MIT
+owners:
+  - name: Cloud
+    email: zhongyongbiao@lvshou.com
+    homepage: http://www.zyall.com
+excludeDirs:
+  - assets
+  - log
+  - view
+  - vendor
+import:
+- package: golang.org/x/sys
+  version: 93c9922d18aeb82498a065f07aec7ad7fa60dfb7
+  repo: https://github.com/golang/sys
+  vcs: git
+  subpackages:
+  - unix
+- package: google.golang.org/appengine
+  version: =1.6.1
+  repo: https://github.com/golang/appengine
+  vcs: git
+  subpackages:
+  - cloudsql
+- package: github.com/gin-gonic/gin
+  version: =1.4.0
+- package: github.com/go-redis/redis
+  version: =6.15.3
+- package: github.com/jinzhu/gorm
+  version: =1.9.8
+  subpackages:
+  - dialects/mysql
+- package: go.uber.org/zap
+  version: 8a2ee5670ced5d94154bf385dc6a362722945daf
+  subpackages:
+  - zapcore
+- package: github.com/natefinch/lumberjack
+  version: =2.0
