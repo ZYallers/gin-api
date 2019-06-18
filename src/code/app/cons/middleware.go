@@ -1,4 +1,4 @@
-package constant
+package cons
 
 const (
 	RecycleKey = "RecycleResource"

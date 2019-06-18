@@ -2,7 +2,7 @@ package service
 
 import (
 	"code/app/abst"
-	"code/app/constant"
+	"code/app/cons"
 	"code/model/user"
 	"encoding/json"
 	"strconv"
@@ -14,13 +14,13 @@ type userInfo struct {
 }
 
 func NewUserInfo() *userInfo {
-	return new(userInfo)
+	return &userInfo{}
 }
 
 func (ui *userInfo) GetUserInfoByUserId(userId int) model.UserInfoTable {
 	cache := ui.GetCache()
 	var uit model.UserInfoTable
-	key := constant.UserInfoStringRdsKey + ":" + strconv.Itoa(userId)
+	key := cons.UserInfoStringRdsKey + ":" + strconv.Itoa(userId)
 
 	str, _ := cache.Get(key).Result()
 	if str == "" {

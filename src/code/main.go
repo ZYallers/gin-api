@@ -1,7 +1,7 @@
 package main
 
 import (
-	"code/app/constant"
+	"code/app/cons"
 	"code/app/logger"
 	"code/app/router"
 	"code/app/tool"
@@ -17,8 +17,8 @@ func main() {
 	router := router.New(engine, logger)
 	router.Use().Group()
 	srv := &http.Server{
-		Addr:        constant.HttpServerAddr,
-		IdleTimeout: constant.HttpServerIdleTimeout,
+		Addr:        cons.HttpServerAddr,
+		IdleTimeout: cons.HttpServerIdleTimeout,
 		Handler:     engine,
 	}
 	tool.Graceful(srv, logger, 5*time.Second)

@@ -45,7 +45,7 @@ type userInfo struct {
 }
 
 func NewUserInfo() *userInfo {
-	ui := new(userInfo)
+	ui := &userInfo{}
 	ui.TableName = "et_user_info"
 	return ui
 }

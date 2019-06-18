@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"code/app/constant"
+	"code/app/cons"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis"
@@ -14,7 +14,7 @@ func Recycle(logger *zap.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Next()
 		var recycleMap sync.Map
-		if val, ok := c.Get(constant.RecycleKey); ok {
+		if val, ok := c.Get(cons.RecycleKey); ok {
 			recycleMap = val.(sync.Map)
 			recycleMap.Range(func(k, v interface{}) bool {
 				switch v.(type) {
@@ -38,13 +38,13 @@ func Recycle(logger *zap.Logger) gin.HandlerFunc {
 func Recycling(c *gin.Context, value interface{}) {
 	key := fmt.Sprintf("%p", &value)
 	var recycleMap sync.Map
-	if val, ok := c.Get(constant.RecycleKey); ok {
+	if val, ok := c.Get(cons.RecycleKey); ok {
 		recycleMap = val.(sync.Map)
 		if _, ok := recycleMap.Load(key); !ok {
 			recycleMap.Store(key, value)
 		}
 	} else {
 		recycleMap.Store(key, value)
-		c.Set(constant.RecycleKey, recycleMap)
+		c.Set(cons.RecycleKey, recycleMap)
 	}
 }

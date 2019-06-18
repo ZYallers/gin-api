@@ -52,7 +52,7 @@ resetPathFun(){
 }
 
 initFun(){
-    appfile="`pwd`/src/code/app/constant/app.go"
+    appfile="`pwd`/src/code/app/cons/app.go"
     if [ ! -f "$appfile" ];then
         echoFun "File [$appfile] is not exist" err
         exit 1
@@ -182,8 +182,14 @@ reloadFun(){
         exit
     fi
 
+    logfile=${appLogDir}/${appName}.log
+    if [ ! -f "$logfile" ];then
+        touch $logfile
+    fi
+    echoFun "Log file: $logfile" tip
+
     export GIN_MODE=release
-    nohup ../../bin/$produceRunnerName > ${appLogDir}/${appName}.log 2>&1 &
+    nohup ../../bin/$produceRunnerName > $logfile 2>&1 &
     echoFun "ProduceRunner is reloaded" ok
 }
 

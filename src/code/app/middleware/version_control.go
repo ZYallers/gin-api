@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"code/app/constant"
+	"code/app/cons"
 	"code/app/tool"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -20,9 +20,9 @@ func VersionControl(engine *gin.Engine, apis map[string]map[string]interface{}) 
 				} else {
 					var version string
 					if c.Request.Method == http.MethodPost {
-						version = c.DefaultPostForm("version", constant.Version)
+						version = c.DefaultPostForm("version", cons.Version)
 					} else {
-						version = c.DefaultQuery("version", constant.Version)
+						version = c.DefaultQuery("version", cons.Version)
 					}
 					var flag bool
 					for _, item := range strings.Split(api["version"].(string), "|") {

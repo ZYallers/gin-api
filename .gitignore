@@ -2,7 +2,7 @@ bin/*
 !bin/README.md
 !bin/develop.sh
 !bin/produce.sh
-!bin/produceRunner_gin-api
+!bin/produceRunner_*
 pkg/*
 !pkg/README.md
 src/code/log/*

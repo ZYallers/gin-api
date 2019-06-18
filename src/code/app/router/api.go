@@ -1,8 +1,8 @@
 package router
 
 import (
-	v100User "code/controller/http/v100/user"
-	v110Test "code/controller/http/v110/test"
+	v100User "code/controller/v100/user"
+	v110Test "code/controller/v110/test"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )

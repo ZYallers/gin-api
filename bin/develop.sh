@@ -51,7 +51,7 @@ resetPathFun(){
 }
 
 initFun(){
-    appfile="`pwd`/src/code/app/constant/app.go"
+    appfile="`pwd`/src/code/app/cons/app.go"
     if [ ! -f "$appfile" ];then
         echoFun "File [$appfile] is not exist" err
         exit 1
@@ -179,7 +179,12 @@ restartFun(){
     stopFun $freshConfigFile $appHttpServerAddr
 
     # 重新启动fresh守护进程
-    nohup fresh -c $freshConfigFile > ${appLogDir}/${appName}.log 2>&1 &
+    logfile=${appLogDir}/${appName}.log
+    if [ ! -f "$logfile" ];then
+        touch $logfile
+    fi
+    echoFun "Log file: $logfile" tip
+    nohup fresh -c $freshConfigFile > $logfile 2>&1 &
     echoFun "Server is restarted" ok
 }
 

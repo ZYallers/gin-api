@@ -23,7 +23,7 @@ type userLoginLog struct {
 }
 
 func NewUserLoginLog() *userLoginLog {
-	ull := new(userLoginLog)
+	ull := &userLoginLog{}
 	ull.TableName = "et_user_login_log"
 	return ull
 }

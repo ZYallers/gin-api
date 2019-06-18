@@ -15,13 +15,12 @@ type userInfo struct {
 }
 
 func NewUserInfo(e *gin.Engine) *userInfo {
-	ui := new(userInfo)
-	ui.Egn = e
+	ui := &userInfo{}
+	ui.SetEngine(e)
 	return ui
 }
 
 func (ui *userInfo) BaseInfo(c *gin.Context) {
-	ui.SetContext(c)
 	userIdStr, _ := c.GetQuery("uid")
 	userId, err := strconv.Atoi(userIdStr)
 	if err != nil {
@@ -34,7 +33,6 @@ func (ui *userInfo) BaseInfo(c *gin.Context) {
 }
 
 func (ui *userInfo) LoginLog(c *gin.Context) {
-	ui.SetContext(c)
 	userIdStr, _ := c.GetQuery("uid")
 	userId, err := strconv.Atoi(userIdStr)
 	if err != nil {

@@ -16,7 +16,9 @@ type rdsPser struct {
 	Err     error
 }
 
-var cache rdsPser
+var (
+	cache rdsPser
+)
 
 func newRedisClient(host, port, password string) (*goredis.Client, error) {
 	rds := goredis.NewClient(&goredis.Options{

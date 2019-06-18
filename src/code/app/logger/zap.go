@@ -1,7 +1,7 @@
 package logger
 
 import (
-	"code/app/constant"
+	"code/app/cons"
 	"github.com/natefinch/lumberjack"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -20,17 +20,17 @@ func mkLogDir(dir string) {
 }
 
 func RouterLogger() *zap.Logger {
-	mkLogDir(constant.LogDir)
-	return getLogger(constant.LogDir+"/"+constant.Name, zap.DebugLevel)
+	mkLogDir(cons.LogDir)
+	return getLogger(cons.LogDir+"/"+cons.Name, zap.DebugLevel)
 }
 
 func Debug(filename string, msg string, fields ...zap.Field) {
 	var dir, fn string
 	if filename == "" {
-		dir = constant.LogDir
-		fn = dir + "/" + constant.Name
+		dir = cons.LogDir
+		fn = dir + "/" + cons.Name
 	} else {
-		dir = constant.LogDir + "/" + time.Now().Format("20060102")
+		dir = cons.LogDir + "/" + time.Now().Format("20060102")
 		fn = dir + "/" + filename
 	}
 	mkLogDir(dir)
@@ -40,10 +40,10 @@ func Debug(filename string, msg string, fields ...zap.Field) {
 func Info(filename string, msg string, fields ...zap.Field) {
 	var dir, fn string
 	if filename == "" {
-		dir = constant.LogDir
-		fn = dir + "/" + constant.Name
+		dir = cons.LogDir
+		fn = dir + "/" + cons.Name
 	} else {
-		dir = constant.LogDir + "/" + time.Now().Format("20060102")
+		dir = cons.LogDir + "/" + time.Now().Format("20060102")
 		fn = dir + "/" + filename
 	}
 	mkLogDir(dir)
@@ -53,10 +53,10 @@ func Info(filename string, msg string, fields ...zap.Field) {
 func Error(filename string, msg string, fields ...zap.Field) {
 	var dir, fn string
 	if filename == "" {
-		dir = constant.LogDir
-		fn = dir + "/" + constant.Name
+		dir = cons.LogDir
+		fn = dir + "/" + cons.Name
 	} else {
-		dir = constant.LogDir + "/" + time.Now().Format("20060102")
+		dir = cons.LogDir + "/" + time.Now().Format("20060102")
 		fn = dir + "/" + filename
 	}
 	mkLogDir(dir)

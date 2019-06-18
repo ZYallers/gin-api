@@ -1,4 +1,4 @@
-package constant
+package cons
 
 import (
 	"time"
@@ -10,5 +10,4 @@ const (
 	HttpServerAddr        = "127.0.0.1:8087"
 	HttpServerIdleTimeout = 30 * time.Second
 	LogDir                = "./log"
-	DbDebug               = false
 )

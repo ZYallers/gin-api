@@ -13,7 +13,7 @@ import (
 
 func Graceful(srv *http.Server, logger *zap.Logger, timeout time.Duration) {
 	if gin.IsDebugging() {
-		logger.Info("Server LinstenAndServing HTTP", zap.Int("ActualPid", syscall.Getpid()))
+		logger.Info("Server Linsten And Serving", zap.Int("ActualPid", syscall.Getpid()))
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Error("[Server LinstenAndServe Error]", zap.Error(err))
 			os.Exit(1)
@@ -21,7 +21,7 @@ func Graceful(srv *http.Server, logger *zap.Logger, timeout time.Duration) {
 	} else {
 		go func() {
 			// 服务连接
-			logger.Info("Server LinstenAndServing HTTP", zap.Int("ActualPid", syscall.Getpid()))
+			logger.Info("Server Linsten And Serving", zap.Int("ActualPid", syscall.Getpid()))
 			if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 				logger.Error("[Server LinstenAndServe Error]", zap.Error(err))
 				os.Exit(1)
@@ -33,7 +33,7 @@ func Graceful(srv *http.Server, logger *zap.Logger, timeout time.Duration) {
 		// kill（无参数）默认发送是 syscanll.SIGTERM
 		// kill -2 是 syscall.SIGINT
 		// kill -9 是 syscall.SIGKILL 但不能抓住，所以不需要添加它
-		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
 		<-quit
 
 		ctx, cancel := context.WithTimeout(context.Background(), timeout)
