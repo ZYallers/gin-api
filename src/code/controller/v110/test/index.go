@@ -27,7 +27,7 @@ func (ti *testIndex) AllConfig(c *gin.Context) {
 }
 
 func (ti *testIndex) Main(c *gin.Context) {
-	ti.GetEngine().LoadHTMLFiles("./view/http/test/index/main.html")
+	ti.GetEngine().LoadHTMLFiles("./view/test/index/main.html")
 	c.HTML(http.StatusOK, "main.html", gin.H{
 		"title": c.Request.URL.String(),
 	})
