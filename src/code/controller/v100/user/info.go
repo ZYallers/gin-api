@@ -10,17 +10,17 @@ import (
 	"strconv"
 )
 
-type userInfo struct {
+type info struct {
 	abst.Controller
 }
 
-func NewUserInfo(e *gin.Engine) *userInfo {
-	ui := &userInfo{}
-	ui.SetEngine(e)
-	return ui
+func Info(e *gin.Engine) *info {
+	i := new(info)
+	i.SetEngine(e)
+	return i
 }
 
-func (ui *userInfo) BaseInfo(c *gin.Context) {
+func (i *info) BaseInfo(c *gin.Context) {
 	userIdStr, _ := c.GetQuery("uid")
 	userId, err := strconv.Atoi(userIdStr)
 	if err != nil {
@@ -32,7 +32,7 @@ func (ui *userInfo) BaseInfo(c *gin.Context) {
 	}
 }
 
-func (ui *userInfo) LoginLog(c *gin.Context) {
+func (i *info) LoginLog(c *gin.Context) {
 	userIdStr, _ := c.GetQuery("uid")
 	userId, err := strconv.Atoi(userIdStr)
 	if err != nil {

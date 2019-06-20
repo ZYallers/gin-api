@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"bytes"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"net"
@@ -83,12 +84,25 @@ func RecoveryWithZap(logger *zap.Logger, stack bool) gin.HandlerFunc {
 				errMsg := err.(error).Error()
 				httpReqStr := string(httpRequest)
 				if stack {
-					logger.Error("[" + errMsg + "]\n\t" + string(debug.Stack()) + "[request]: \n\t" + httpReqStr)
+					var bf bytes.Buffer
+					bf.WriteString("[" + errMsg + "]\n\t")
+					bf.Write(debug.Stack())
+					bf.WriteString("[request]: \n\t" + httpReqStr)
+					logger.Error(bf.String())
 				} else {
 					logger.Error("[Recovery From Panic]",
 						zap.String("error", errMsg),
 						zap.String("request", httpReqStr),
 					)
+				}
+				if gin.IsDebugging() {
+					var bf bytes.Buffer
+					bf.WriteString("<pre style=\"font-family:SFMono-Regular,Consolas,Liberation Mono,Menlo,Courier," +
+						"monospace;line-height:1.5em;font-size:14px;\"><h1>Error</h1><h2>" + errMsg + "</h2><p>")
+					bf.Write(debug.Stack())
+					bf.WriteString("</p><h2>Request: </h2><p>" + httpReqStr + "</p></pre>")
+					c.Header("Content-Type", "text/html; charset=utf-8")
+					c.String(http.StatusInternalServerError, bf.String())
 				}
 				c.AbortWithStatus(http.StatusInternalServerError)
 			}

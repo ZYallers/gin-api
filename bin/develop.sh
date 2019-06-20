@@ -184,7 +184,7 @@ restartFun(){
         touch $logfile
     fi
     echoFun "Log file: $logfile" tip
-    nohup fresh -c $freshConfigFile > $logfile 2>&1 &
+    nohup fresh -c $freshConfigFile >> $logfile 2>&1 &
     echoFun "Server is restarted" ok
 }
 

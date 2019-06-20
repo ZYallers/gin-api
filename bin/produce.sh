@@ -189,7 +189,7 @@ reloadFun(){
     echoFun "Log file: $logfile" tip
 
     export GIN_MODE=release
-    nohup ../../bin/$produceRunnerName > $logfile 2>&1 &
+    nohup ../../bin/$produceRunnerName >> $logfile 2>&1 &
     echoFun "ProduceRunner is reloaded" ok
 }
 
