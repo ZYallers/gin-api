@@ -2,6 +2,8 @@ package middleware
 
 import (
 	"bytes"
+	"code/app/logger"
+	"code/app/tool"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"net"
@@ -16,29 +18,28 @@ import (
 // Ginzap returns a gin.HandlerFunc (middleware) that logs requests using uber-go/zap.
 // Requests with errors are logged using zap.Error().
 // Requests without errors are logged using zap.Info().
-func LoggerWithZap(logger *zap.Logger) gin.HandlerFunc {
+func LoggerWithZap(appLogger *zap.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
-		// some evil middlewares modify this values
-		path := c.Request.URL.Path
-		query := c.Request.URL.RawQuery
+		// Some evil middlewares modify this values
+		//path := c.Request.URL.Path
+		//query := c.Request.URL.RawQuery
 		c.Next()
 
-		end := time.Now()
-		latency := end.Sub(start)
+		latency := time.Now().Sub(start)
 
 		if len(c.Errors) > 0 {
 			// Append error field if this is an erroneous request.
 			for _, err := range c.Errors.Errors() {
-				logger.Error(err)
+				go appLogger.Error(err)
+				go tool.SendDingTalkGroupMessage(c, err)
 			}
 		} else {
-			// 只在debugMode下记录，或者请求超过3秒
-			if gin.IsDebugging() || latency >= 3*time.Second {
-				logger.Info(path,
+			if latency >= 3*time.Second {
+				go logger.Info("morethan3seconds", c.Request.URL.Path,
 					zap.Int("status", c.Writer.Status()),
 					zap.String("method", c.Request.Method),
-					zap.String("query", query),
+					zap.String("query", c.Request.URL.RawQuery),
 					zap.Duration("latency", latency),
 					zap.String("ip", c.ClientIP()),
 					zap.String("agent", c.Request.UserAgent()),
@@ -53,7 +54,7 @@ func LoggerWithZap(logger *zap.Logger) gin.HandlerFunc {
 // All errors are logged using zap.Error().
 // stack means whether output the stack info.
 // The stack info is easy to find where the error occurs but the stack info is too large.
-func RecoveryWithZap(logger *zap.Logger, stack bool) gin.HandlerFunc {
+func RecoveryWithZap(appLogger *zap.Logger, stack bool) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		defer func() {
 			if err := recover(); err != nil {
@@ -69,40 +70,35 @@ func RecoveryWithZap(logger *zap.Logger, stack bool) gin.HandlerFunc {
 					}
 				}
 
-				httpRequest, _ := httputil.DumpRequest(c.Request, false)
+				errMsg := err.(error).Error()
+				go tool.SendDingTalkGroupMessage(c, errMsg)
+
+				httpRequest, _ := httputil.DumpRequest(c.Request, true)
+				httpReqStr := string(httpRequest)
+
 				if brokenPipe {
-					logger.Error(c.Request.URL.Path,
-						zap.String("error", err.(string)),
-						zap.String("request", string(httpRequest)),
-					)
 					// If the connection is dead, we can't write a status to it.
 					_ = c.Error(err.(error)) // nolint: errcheck
 					c.Abort()
+					go appLogger.Error(c.Request.URL.Path, zap.String("error", errMsg), zap.String("request", httpReqStr))
 					return
 				}
 
-				errMsg := err.(error).Error()
-				httpReqStr := string(httpRequest)
 				if stack {
 					var bf bytes.Buffer
 					bf.WriteString("[" + errMsg + "]\n\t")
 					bf.Write(debug.Stack())
 					bf.WriteString("[request]: \n\t" + httpReqStr)
-					logger.Error(bf.String())
-				} else {
-					logger.Error("[Recovery From Panic]",
-						zap.String("error", errMsg),
-						zap.String("request", httpReqStr),
-					)
-				}
-				if gin.IsDebugging() {
-					var bf bytes.Buffer
-					bf.WriteString("<pre style=\"font-family:SFMono-Regular,Consolas,Liberation Mono,Menlo,Courier," +
-						"monospace;line-height:1.5em;font-size:14px;\"><h1>Error</h1><h2>" + errMsg + "</h2><p>")
+					go appLogger.Error(bf.String())
+
+					bf.Reset()
+					c.Header("Content-Type", "text/html;charset=utf-8")
+					bf.WriteString(`<pre style="font-family:SFMono-Regular,Consolas,Menlo,monospace;line-height:1.5em;font-size:14px"><h1>Error</h1><h2>` + errMsg + "</h2><p>")
 					bf.Write(debug.Stack())
 					bf.WriteString("</p><h2>Request: </h2><p>" + httpReqStr + "</p></pre>")
-					c.Header("Content-Type", "text/html; charset=utf-8")
 					c.String(http.StatusInternalServerError, bf.String())
+				} else {
+					go appLogger.Error("[Recovery From Panic]", zap.String("error", errMsg), zap.String("request", httpReqStr))
 				}
 				c.AbortWithStatus(http.StatusInternalServerError)
 			}

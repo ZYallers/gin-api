@@ -7,3 +7,6 @@ pkg/*
 !pkg/README.md
 src/code/log/*
 src/code/vendor/*
+src/github.com/
+log/
+.idea/

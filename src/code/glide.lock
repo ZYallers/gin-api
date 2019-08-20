@@ -1,6 +1,10 @@
-hash: 81b1900651280fbd5ee2c462ad8f8bb3d93bc2ee82f3e3ad015452a54b7dd8bf
-updated: 2019-06-14T18:04:57.56374+08:00
+hash: 8de5374c40b97106c9d1bc023ec0b804017e58b3e174a633f4190067d17a0cc7
+updated: 2019-08-07T17:15:58.521694+08:00
 imports:
+- name: github.com/beorn7/perks
+  version: 37c8de3658fcb183f997c4e13e8337516ab753e6
+  subpackages:
+  - quantile
 - name: github.com/gin-contrib/sse
   version: 54d8467d122d380a14768b6b4e5cd7ca4755938f
 - name: github.com/gin-gonic/gin
@@ -9,47 +13,62 @@ imports:
   - binding
   - internal/json
   - render
-- name: github.com/go-redis/redis
-  version: 75795aa4236dc7341eefac3bbe945e68c99ef9df
-  subpackages:
-  - internal
-  - internal/consistenthash
-  - internal/hashtag
-  - internal/pool
-  - internal/proto
-  - internal/util
-- name: github.com/go-sql-driver/mysql
-  version: 877a9775f06853f611fb2d4e817d92479242d1cd
 - name: github.com/golang/protobuf
   version: b285ee9cfc6c881bb20c0d8dc73370ea9b9ec90f
   subpackages:
   - proto
-- name: github.com/jinzhu/gorm
-  version: b7156195f7f3415f97c20abbd6aff894b847fee8
-  subpackages:
-  - dialects/mysql
-- name: github.com/jinzhu/inflection
-  version: f5c5f50e6090ae76a29240b61ae2a90dd810112e
 - name: github.com/json-iterator/go
   version: 0039f4ac3d5680243e7d0650c581e7ec0885ef5a
 - name: github.com/mattn/go-isatty
   version: 1311e847b0cb909da63b5fecfb5370aa66236465
+- name: github.com/matttproud/golang_protobuf_extensions
+  version: c182affec369e30f25d3eb8cd8a478dee585ae7d
+  subpackages:
+  - pbutil
 - name: github.com/modern-go/concurrent
   version: bacd9c7ef1dd9b15be4a9909b8ac7a4e313eec94
 - name: github.com/modern-go/reflect2
   version: 94122c33edd36123c84d5368cfb2b69df93a0ec8
 - name: github.com/natefinch/lumberjack
   version: 94d9e492cc53c413571e9b40c0b39cee643ee516
+- name: github.com/prometheus/client_golang
+  version: 170205fb58decfd011f1550d4cfb737230d7ae4f
+  subpackages:
+  - prometheus
+  - prometheus/internal
+  - prometheus/promauto
+  - prometheus/promhttp
+- name: github.com/prometheus/client_model
+  version: fd36f4220a901265f90734c3183c5f0c91daa0b8
+  subpackages:
+  - go
+- name: github.com/prometheus/common
+  version: 637d7c34db122e2d1a25d061423098663758d2d3
+  subpackages:
+  - expfmt
+  - internal/bitbucket.org/ww/goautoneg
+  - model
+- name: github.com/prometheus/procfs
+  version: 5da962fa40f1c9b54ed78f10ba32429b396e712b
+  subpackages:
+  - internal/fs
+  - internal/util
 - name: github.com/ugorji/go
   version: 167c36279aec65b6c8faa06bba539110fda585ad
   subpackages:
   - codec
 - name: go.uber.org/atomic
   version: df976f2515e274675050de7b3f42545de80594fd
+  repo: https://github.com/uber-go/atomic
+  vcs: git
 - name: go.uber.org/multierr
   version: 3c4937480c32f4c13a875a1829af76c98ca3d40a
+  repo: https://github.com/uber-go/multierr
+  vcs: git
 - name: go.uber.org/zap
-  version: 8a2ee5670ced5d94154bf385dc6a362722945daf
+  version: 27376062155ad36be76b0f12cf1572a221d3a48c
+  repo: https://github.com/uber-go/zap
+  vcs: git
   subpackages:
   - buffer
   - internal/bufferpool
@@ -62,6 +81,7 @@ imports:
   vcs: git
   subpackages:
   - unix
+  - windows
 - name: google.golang.org/appengine
   version: b2f4a3cf3c67576a2ee09e1fe62656a5086ce880
   repo: https://github.com/golang/appengine

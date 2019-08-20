@@ -6,10 +6,19 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"os"
+	"sync"
 	"time"
 )
 
-var LoadedMap = map[string]*zap.Logger{}
+var (
+	loadedLoggers map[string]*zap.Logger
+	loggersRWLock *sync.RWMutex
+)
+
+func init() {
+	loadedLoggers = map[string]*zap.Logger{}
+	loggersRWLock = new(sync.RWMutex)
+}
 
 func mkLogDir(dir string) {
 	if _, err := os.Stat(dir); err != nil && os.IsNotExist(err) {
@@ -31,7 +40,7 @@ func Debug(filename string, msg string, fields ...zap.Field) {
 		fn = dir + "/" + cons.Name
 	} else {
 		dir = cons.LogDir + "/" + time.Now().Format("20060102")
-		fn = dir + "/" + filename
+		fn = dir + "/" + cons.Name + "_" + filename
 	}
 	mkLogDir(dir)
 	getLogger(fn, zap.DebugLevel).Debug(msg, fields...)
@@ -44,7 +53,7 @@ func Info(filename string, msg string, fields ...zap.Field) {
 		fn = dir + "/" + cons.Name
 	} else {
 		dir = cons.LogDir + "/" + time.Now().Format("20060102")
-		fn = dir + "/" + filename
+		fn = dir + "/" + cons.Name + "_" + filename
 	}
 	mkLogDir(dir)
 	getLogger(fn, zap.InfoLevel).Info(msg, fields...)
@@ -57,32 +66,33 @@ func Error(filename string, msg string, fields ...zap.Field) {
 		fn = dir + "/" + cons.Name
 	} else {
 		dir = cons.LogDir + "/" + time.Now().Format("20060102")
-		fn = dir + "/" + filename
+		fn = dir + "/" + cons.Name + "_" + filename
 	}
 	mkLogDir(dir)
 	getLogger(fn, zap.ErrorLevel).Error(msg, fields...)
 }
 
 func getLogger(filename string, level zapcore.Level) *zap.Logger {
-	if logger, ok := LoadedMap[filename]; ok {
+	loggersRWLock.RLock()
+	if logger, ok := loadedLoggers[filename]; ok {
+		loggersRWLock.RUnlock()
 		return logger
 	}
+	loggersRWLock.RUnlock()
+
 	encoderConfig := zap.NewProductionEncoderConfig()
 	encoderConfig.EncodeTime = func(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
 		enc.AppendString("[ZAP] " + t.Format("2006/01/02 15:04:05.000000"))
 	}
-	hook := lumberjack.Logger{
-		Filename:   filename + ".log",
-		MaxSize:    100,
-		MaxBackups: 30,
-		MaxAge:     30,
-		LocalTime:  true,
-		Compress:   false,
-	}
+	hook := lumberjack.Logger{Filename: filename + ".log", LocalTime: true}
 	writeSyncer := zapcore.AddSync(&hook)
 	core := zapcore.NewCore(zapcore.NewConsoleEncoder(encoderConfig), writeSyncer, level)
 	logger := zap.New(core)
-	LoadedMap[filename] = logger
+
+	loggersRWLock.Lock()
+	loadedLoggers[filename] = logger
+	loggersRWLock.Unlock()
 	logger.Info("New ZapLogger Success", zap.String("filename", filename))
+
 	return logger
 }

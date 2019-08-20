@@ -1,5 +1,5 @@
 # gin-api
-基于Gin框架搭建，专门为app接口开发而设计的一个MVC框架。
+基于Gin框架搭建，专门为app接口开发而设计的一个API统一网关。
 
 Gin是一个用Go（Golang）编写的Web框架。
 它具有类似马提尼的API，具有更好的性能，由于httprouter，速度提高了40倍。
@@ -38,20 +38,21 @@ Gin 为 JSON，XML 和 HTML 渲染提供了易于使用的 API。
 
 ### 要求
 - Go 1.6 及以上版本
+
 > 很快会需要 Go 1.8 版本
 
-### 1. cd 到 src 目录
+### 1. cd 到 $GOPATH 目录
 ```bash
-$ cd $GOPATH/src
+$ cd $GOPATH
 ```
 
 ### 2. 执行 develop.sh 脚本文件
 ```bash
-$ ./develop.sh
+$ ./bin/develop.sh sync
+$ ./bin/develop.sh restart
 ```
 
 > 提醒事项：
-- 脚本文件里执行热启动服务需要根据情况配置，查找`需要配置`关键字
 - 此脚本运行方式只适合开发阶段
 
 ## 资料
