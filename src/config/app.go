@@ -8,6 +8,7 @@ import (
 
 const (
 	Name                  = "gin-api"
+	Version               = "2.0.0"
 	HttpServerDefaultAddr = "0.0.0.0:9010"
 	HttpServerIdleTimeout = 30 * time.Second
 	LogDir                = "/apps/logs/go/gin-api"
