@@ -38,18 +38,8 @@ helpFun(){
     exit 0
 }
 
-resetPathFun(){
-    echoFun "reset GOPATH:" title
-    export GOPATH=`pwd`
-    echoFun "now GOPATH: `echo $GOPATH`" tip
-
-    echoFun "add PATH:" title
-    export PATH="$GOROOT/bin:$GOPATH/bin:$PATH"
-    echoFun "now PATH: `echo $PATH`" tip
-}
-
 initFun(){
-    appfile="`pwd`/src/code/app/cons/app.go"
+    appfile="`pwd`/src/config/app.go"
     if [[ ! -f "$appfile" ]];then
         echoFun "file [$appfile] is not exist" err
         exit 1
@@ -69,6 +59,7 @@ initFun(){
         httpServerAddr=$1
         echoFun "httpServerAddr[shellArgs]: $httpServerAddr" tip
     fi
+
     if [[ "$httpServerAddr" == "" ]];then
         echoFun "httpServerAddr is empty" err
         exit 1
@@ -79,12 +70,12 @@ initFun(){
         echoFun "logDir is null" err
         exit 1
     fi
+
     echoFun "logDir: $logDir" tip
 }
 
 statusFun(){
     initFun $1
-    sleep 2s
 
     echoFun "ps process:" title
     if [[ `pgrep ${name}|wc -l` -gt 0 ]];then
@@ -98,64 +89,17 @@ statusFun(){
 
 syncFun(){
     initFun
-    sleep 2s
-
-    resetPathFun
-    sleep 2s
-
-    echoFun "get glide:" title
     cd ./src
-    if [[ ! -f "../bin/glide" ]];then
-        mkdir -p ./github.com/Masterminds
-        cd ./github.com/Masterminds
-        git clone -b v0.13.2 https://github.com/Masterminds/glide.git
-        cd ../../
-        go install -v -x github.com/Masterminds/glide
-        if [[ ! -f "../bin/glide" ]];then
-            echoFun "get glide failed" err
-            exit 1
-        fi
-        if [[ ! -x "../bin/glide" ]];then
-            chmod u+x "../bin/glide"
-        fi
-        rm -rf ./github.com
-        rm -rf ./golang.org
-        echoFun "get glide succeed" ok
-    else
-        echoFun "glide already getted" tip
-    fi
-    sleep 2s
+    export GOPROXY=https://goproxy.cn
 
-    echoFun "glide install:" title
-    cd ./code
-    if [[ ! -f "./glide.lock" && ! -f "./glide.yaml" ]];then
-        echoFun "glide lock or yaml file is not exist" err
-        exit 1
+    echoFun "go mod vendor:" title
+    if [[ ! -f "./go.mod" ]];then
+        go mod init src
     fi
-    glide install
-    echoFun "glide is installed" ok
-}
-
-glideUpdateFun(){
-    initFun
-    sleep 2s
-
-    resetPathFun
-    sleep 2s
-
-    echo "glide update:" title
-    cd ./src
-    if [[ ! -f "../bin/glide" ]];then
-        echoFun "glide is not exist" err
-        exit 1
-    fi
-    cd ./code
-    if [[ ! -f "./glide.lock" && ! -f "./glide.yaml" ]];then
-        echoFun "glide lock or yaml file is not exist" err
-        exit 1
-    fi
-    glide update
-    echoFun "glide update finish" ok
+    go mod tidy
+    rm -rf ./vendor
+    go mod vendor
+    echoFun "go mod vendor finished" ok
 }
 
 buildFun(){
@@ -173,32 +117,37 @@ buildFun(){
         git pull # 拉取最新版本
         echoFun "git pull [$branch] finish" ok
     fi
-    sleep 2s
 
     initFun
-    sleep 2s
-
-    resetPathFun
-    sleep 2s
 
     echoFun "build runner:" title
 
-    go build -v -x -o ./bin/${name}_tmp ./src/code/main.go
-    sleep 2s
+    cd ./src
+    if [[ "$dlv" ]] ; then
+      echoFun 'build with -gcflags "all=-N -l"' tip
+      go build -gcflags "all=-N -l" -o ../bin/${name}_tmp ./main.go
+    else
+      echoFun "No extra build options" tip
+      go build -o ../bin/${name}_tmp ./main.go
+    fi
 
+    cd ../
     if [[ ! -f "./bin/${name}_tmp" ]];then
-        echoFun "build runner failed" err
+        echoFun "build tmp runner failed" err
         exit 1
     fi
 
-    /bin/cp -rf ./bin/${name}_tmp ./bin/${name}
-    rm ./bin/${name}_tmp
-    echoFun "build runner [`pwd`/bin/$name] succeed" ok
+    mv -f ./bin/${name}_tmp ./bin/${name}
+    if [[ ! -f "./bin/${name}" ]];then
+        echoFun "mv tmp runner failed" err
+        exit 1
+    fi
+
+    echoFun "build runner [`pwd`/bin/$name] finished" ok
 }
 
 reloadFun(){
     initFun $1
-    sleep 2s
 
     echoFun "runner reloading:" title
 
@@ -224,8 +173,12 @@ reloadFun(){
 
     quitFun ${httpServerAddr}
 
+    # 防止Jenkins默认会在Build结束后Kill掉所有的衍生进程
+    export BUILD_ID=dontKillMe
+
     export GIN_MODE=release
-    nohup ./bin/${name} --http.addr=${httpServerAddr} >> ${logfile} 2>&1 &
+    nohup ./bin/${name} -http.addr=${httpServerAddr} >> ${logfile} 2>&1 &
+
     echoFun "runner [$httpServerAddr] is reloaded, pid: `echo $!`" ok
 }
 
@@ -246,10 +199,10 @@ quitFun(){
         do
             if [[ `lsof -i tcp:${port}|grep LISTEN|wc -l` -gt 0 ]];then
                 echoFun "killing pid[$pid] ..." tip
-                sleep 1s;
+                sleep 0.5s
             else
                 echoFun "quit finish" ok
-                break;
+                break
             fi
         done
     else
@@ -257,8 +210,23 @@ quitFun(){
     fi
 }
 
+while getopts ':d' OPT; do
+    case $OPT in
+        d)
+            # 配合 delve 使用, http://wiki.sys.hxsapp.net/pages/viewpage.action?pageId=21349181
+            dlv=d
+            shift 1;
+        ;;
+        ?)  #当有不认识的选项的时候arg为?
+            echo "unkonw argument"
+            exit 1
+        ;;
+    esac
+done
+
 cmd=$1
 arg1=$2
+
 case ${cmd} in
         status)
             statusFun ${arg1}
@@ -266,15 +234,11 @@ case ${cmd} in
         sync)
             syncFun
         ;;
-        update)
-            glideUpdateFun
-        ;;
         build)
             buildFun ${arg1}
         ;;
         quit)
             initFun ${arg1}
-            sleep 2s
             quitFun ${httpServerAddr}
         ;;
         reload)
@@ -284,4 +248,3 @@ case ${cmd} in
             helpFun
         ;;
 esac
-exit 0

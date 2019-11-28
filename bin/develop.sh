@@ -38,18 +38,8 @@ helpFun(){
     exit 0
 }
 
-resetPathFun(){
-    echoFun "reset GOPATH:" title
-    export GOPATH=`pwd`
-    echoFun "now GOPATH: `echo $GOPATH`" tip
-
-    echoFun "add PATH:" title
-    export PATH="$GOROOT/bin:$GOPATH/bin:$PATH"
-    echoFun "now PATH: `echo $PATH`" tip
-}
-
 initFun(){
-    appfile="`pwd`/src/code/app/cons/app.go"
+    appfile="`pwd`/src/config/app.go"
     if [[ ! -f "$appfile" ]];then
         echoFun "file [$appfile] is not exist" err
         exit 1
@@ -76,7 +66,7 @@ initFun(){
     fi
     echoFun "logDir: $logDir" tip
 
-    freshConfigFile="`pwd`/src/code/fresh.conf"
+    freshConfigFile="`pwd`/src/fresh.conf"
     if [[ ! -f "$freshConfigFile" ]];then
         echoFun "fresh config file [$freshConfigFile] is not exist" err
         exit 1
@@ -87,7 +77,6 @@ initFun(){
 
 statusFun(){
     initFun
-    sleep 2s
 
     echoFun "ps process:" title
     if [[ `pgrep ${freshName}|wc -l` -gt 0 ]];then
@@ -100,75 +89,38 @@ statusFun(){
 
 syncFun(){
     initFun
-    sleep 2s
-
-    resetPathFun
-    sleep 2s
-
-    echoFun "get glide:" title
     cd ./src
-    if [[ ! -f "../bin/glide" ]];then
-        mkdir -p ./github.com/Masterminds
-        cd ./github.com/Masterminds
-        git clone -b v0.13.2 https://github.com/Masterminds/glide.git
-        cd ../../
-        go install -v -x github.com/Masterminds/glide
-        if [[ ! -f "../bin/glide" ]];then
-            echoFun "get glide failed" err
-            exit 1
-        fi
-        if [[ ! -x "../bin/glide" ]];then
-            chmod u+x "../bin/glide"
-        fi
-        echoFun "get glide succeed" ok
-    else
-        echoFun "glide already getted" tip
-    fi
-    sleep 2s
+    export GOPROXY=https://goproxy.cn
 
-    echoFun "glide install:" title
-    cd ./code
-    if [[ ! -f "./glide.lock" && ! -f "./glide.yaml" ]];then
-        echoFun "glide lock or yaml file is not exist" err
-        exit 1
-    fi
-    glide install
-    echoFun "glide is installed" ok
-    sleep 2s
-
-    cd ../
     echoFun "get fresh:" title
     if [[ ! -f "../bin/$freshName" ]];then
-        if [[ ! -d "./golang.org/x/sys" ]];then
-            mkdir -p ./golang.org/x/sys
-        fi
-        /bin/cp -rf ./code/vendor/golang.org/x/sys ./golang.org/x
-        go get -v -x github.com/pilu/fresh
-        if [[ ! -f "../bin/fresh" ]];then
-            echoFun "get fresh failed" err
+        mkdir -p ./github.com/gravityblast
+        cd ./github.com/gravityblast
+        git clone -b master https://github.com/gravityblast/fresh.git
+        cd ../../
+        go build -x -o ../bin/${freshName} ./github.com/gravityblast/fresh/main.go
+        if [[ ! -f "../bin/$freshName" ]];then
+            echoFun "build fresh failed" err
             exit 1
         fi
-
-        /bin/cp -rf ../bin/fresh ../bin/${freshName}
-        rm -rf ../bin/fresh
-
-        if [[ ! -x "../bin/$freshName" ]];then
-            chmod u+x "../bin/$freshName"
-        fi
-        echoFun "get fresh succeed" ok
+        rm -rf ./github.com
+        echoFun "get fresh finished" ok
     else
-        echoFun "fresh already getted" tip
+        echoFun "fresh is getted" tip
     fi
-    rm -rf ./github.com
-    rm -rf ./golang.org
+
+    echoFun "go mod vendor:" title
+    if [[ ! -f "./go.mod" ]];then
+        go mod init src
+    fi
+    go mod tidy
+    rm -rf ./vendor
+    go mod vendor
+    echoFun "go mod vendor finished" ok
 }
 
 restartFun(){
     initFun
-    sleep 2s
-
-    resetPathFun
-    sleep 2s
 
     echoFun "fresh restarting:" title
 
@@ -194,32 +146,12 @@ restartFun(){
 
     stopFun ${freshName} ${httpServerAddr}
 
-    cd ./src/code
-    nohup ../../bin/${freshName} -c fresh.conf >> ${logfile} 2>&1 &
+    cd ./src
+    export GIN_MODE=release
+    export GIN_DEBUG_STACK=on
+    nohup ../bin/${freshName} -c fresh.conf >> ${logfile} 2>&1 &
 
     echoFun "fresh is restarted" ok
-}
-
-glideUpdateFun(){
-    initFun
-    sleep 2s
-
-    resetPathFun
-    sleep 2s
-
-    echo "glide update:" title
-    cd ./src
-    if [[ ! -f "../bin/glide" ]];then
-        echoFun "glide is not exist" err
-        exit 1
-    fi
-    cd ./code
-    if [[ ! -f "./glide.lock" && ! -f "./glide.yaml" ]];then
-        echoFun "glide lock or yaml file is not exist" err
-        exit 1
-    fi
-    glide update
-    echoFun "glide update finish" ok
 }
 
 stopFun(){
@@ -259,12 +191,8 @@ case $1 in
         sync)
             syncFun
         ;;
-        update)
-            glideUpdateFun
-        ;;
         stop)
             initFun
-            sleep 2s
             stopFun ${freshName} ${httpServerAddr}
         ;;
         restart)
@@ -274,4 +202,3 @@ case $1 in
             helpFun
         ;;
 esac
-exit 0

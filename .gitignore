@@ -1,12 +1,9 @@
-bin/*
+bin
 !bin/README.md
 !bin/develop.sh
 !bin/produce.sh
-!bin/produceRunner_*
-pkg/*
+pkg
 !pkg/README.md
-src/code/log/*
-src/code/vendor/*
-src/github.com/
-log/
-.idea/
+src/vendor
+log
+.idea
