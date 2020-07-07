@@ -34,7 +34,6 @@ func (a AccountModule) userAccountUpper(rg *gin.RouterGroup, c *account.UserAcco
 		api.POST("/thirdPartyBindInfo", c.ThirdPartyBindInfo)
 		api.POST("/verifySmsCode", c.VerifySmsCode)
 		api.POST("/thirdPartyBindOrUnbind", c.ThirdPartyBindOrUnbind)
-		api.POST("/modifyMobile", c.ModifyMobile)
 		api.GET("/relateMobile", c.RelateMobile)
 		api.POST("/relateMobile", c.RelateMobile)
 		api.POST("/outsideLogin", c.OutsideLogin)
@@ -98,6 +97,8 @@ func (a AccountModule) Group(eg *gin.Engine) {
 			userPotoWall,
 			userAccount,
 			userInfo,
+			account.Usertag(),
+			account.Equity(),
 		)
 	}
 }

@@ -26,6 +26,7 @@ func UserInfo() UserInfoController {
 		"GetChatInfoByChatAccount":     {ControllerNameFirstUpper: true},
 		"CanImWithChatAccount":         {ControllerNameFirstUpper: true},
 		"GetUserStatusByOpenImAccount": {ControllerNameFirstUpper: true},
+		"GetSelfUserInfo2":             {HttpMethods: []string{http.MethodGet}},
 	}
 	return c
 }
@@ -37,6 +38,11 @@ func UserInfo() UserInfoController {
  * @return   [type]                   [description]
  */
 func (c UserInfoController) GetSelfUserInfo(ctx *gin.Context) {
+	//c.ServiceRewrite(ctx, userInfoUri+tool.CurrentMethodName())
+	c.ServiceRewrite(ctx, userInfoUri+"getSelfUserInfo2")
+}
+
+func (c UserInfoController) GetSelfUserInfo2(ctx *gin.Context) {
 	c.ServiceRewrite(ctx, userInfoUri+tool.CurrentMethodName())
 }
 
@@ -186,11 +192,8 @@ func (c UserInfoController) GetUserInfoByOpenImAccount(ctx *gin.Context) {
 func (c UserInfoController) CanImWithChatAccount(ctx *gin.Context) {
 	save := ctx.Request.Body
 	save, ctx.Request.Body, _ = tool.DrainBody(ctx.Request.Body)
-	key := `chat_account`
-	keyValue := ctx.DefaultPostForm(key, "")
-	if keyValue == "" {
-		keyValue = ctx.DefaultQuery(key, "")
-	}
+	key := "chat_account"
+	keyValue := tool.GetQueryPostForm(ctx, key)
 	ctx.Request.Body = save
 	if keyValue, _ = url.QueryUnescape(keyValue); len(strings.Split(keyValue, ",")) > 50 {
 		c.ServiceMultiRewrite(ctx, userInfoUri+tool.CurrentMethodName(), key, 10)

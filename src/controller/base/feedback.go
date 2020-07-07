@@ -29,6 +29,14 @@ func (c FeedbackController) SaveFeedback(ctx *gin.Context) {
 }
 
 /**
+ * [getTypeFeedback 获取某类型的反馈列表]
+ * @return [type] [description]
+ */
+func (c FeedbackController) GetTypeFeedback(ctx *gin.Context) {
+	c.ServiceRewrite(ctx, feedbackUri+tool.CurrentMethodName())
+}
+
+/**
  * [getUserFeedback 获取用户意见反馈列表]
  * @return [type] [description]
  */

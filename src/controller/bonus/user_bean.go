@@ -1,9 +1,10 @@
 package bonus
 
 import (
-	"github.com/gin-gonic/gin"
 	"src/abs"
 	"src/library/tool"
+
+	"github.com/gin-gonic/gin"
 )
 
 type UserBeanController struct {
@@ -74,6 +75,16 @@ func (c UserBeanController) GetUserBean(ctx *gin.Context) {
 	c.ServiceRewrite(ctx, userBeanUri+tool.CurrentMethodName())
 }
 
+// 获取多个用户的绿豆数目，这个接口在原 GetUserBean() 的基础上增加返回过期相关信息
+func (c UserBeanController) GetMultiUserInfo(ctx *gin.Context) {
+	c.ServiceRewrite(ctx, userBeanUri+tool.CurrentMethodName())
+}
+
+// H5 获取多个用户的绿豆数目，这个接口在原 GetUserBean() 的基础上增加返回过期相关信息
+func (c UserBeanController) WebGetMultiUserInfo(ctx *gin.Context) {
+	c.ServiceRewrite(ctx, userBeanUri+tool.CurrentMethodName())
+}
+
 /**
  * @Author:      caius
  * @DateTime:    2018-01-29 15:10:36
@@ -135,5 +146,9 @@ func (c UserBeanController) ConsultTime(ctx *gin.Context) {
  * @Description: 4.2.6 弹窗领取绿豆
  */
 func (c UserBeanController) SetBeanWithPopup(ctx *gin.Context) {
+	c.ServiceRewrite(ctx, userBeanUri+tool.CurrentMethodName())
+}
+
+func (c UserBeanController) GetBeanRateConfig(ctx *gin.Context) {
 	c.ServiceRewrite(ctx, userBeanUri+tool.CurrentMethodName())
 }

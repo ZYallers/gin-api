@@ -14,7 +14,7 @@ var (
 	appInfo = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "go_app_info",
-			Help: "Now running go app information.",
+			Help: "now running go app information.",
 		},
 		[]string{"name", "cmdline"},
 	)

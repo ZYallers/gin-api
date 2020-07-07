@@ -10,33 +10,33 @@ type KscaleController struct {
 	abs.Controller
 }
 
-const kscaleUri  = "http://hardware.hxsapp.com/device/Kscale/"
+const kscaleUri = "http://hardware.hxsapp.com/device/Kscale/"
 
-func Kscale()  KscaleController{
+func Kscale() KscaleController {
 	c := KscaleController{}
 	return c
 }
 
-func(c KscaleController) ProduceInit(ctx *gin.Context)  {
+func (c KscaleController) ProduceInit(ctx *gin.Context) {
 	c.ServiceRewrite(ctx, kscaleUri+tool.CurrentMethodName())
 }
 
-func(c KscaleController) Register(ctx *gin.Context)  {
+func (c KscaleController) Register(ctx *gin.Context) {
 	c.ServiceRewrite(ctx, kscaleUri+tool.CurrentMethodName())
 }
 
-func(c KscaleController) Configure(ctx *gin.Context)  {
+func (c KscaleController) Configure(ctx *gin.Context) {
 	c.ServiceRewrite(ctx, kscaleUri+tool.CurrentMethodName())
 }
 
-func(c KscaleController) Upload(ctx *gin.Context)  {
+func (c KscaleController) Upload(ctx *gin.Context) {
 	c.ServiceRewrite(ctx, kscaleUri+tool.CurrentMethodName())
 }
 
-func(c KscaleController) CheckUpdate(ctx *gin.Context)  {
+func (c KscaleController) CheckUpdate(ctx *gin.Context) {
 	c.ServiceRewrite(ctx, kscaleUri+tool.CurrentMethodName())
 }
 
-func(c KscaleController) ErrorLog(ctx *gin.Context)  {
+func (c KscaleController) ErrorLog(ctx *gin.Context) {
 	c.ServiceRewrite(ctx, kscaleUri+tool.CurrentMethodName())
 }

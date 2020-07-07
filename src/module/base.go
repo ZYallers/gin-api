@@ -1,10 +1,11 @@
 package module
 
 import (
-	"github.com/gin-gonic/gin"
 	"src/abs"
 	"src/controller/base"
 	"src/library/tool"
+
+	"github.com/gin-gonic/gin"
 )
 
 type BaseModule struct {
@@ -62,14 +63,18 @@ func (a BaseModule) Group(eg *gin.Engine) {
 			base.Ad(),
 			base.Android(),
 			base.Assessment(),
+			base.BottomItem(),
+			base.Gridly(),
 			base.HomePage(),
 			base.Notice(),
 			base.Push(),
 			base.UserMessage(),
 			base.VisibleUser(),
+			base.QA(),
 			common,
 			feedback,
 			tag,
+			base.ModPush(),
 		)
 	}
 }

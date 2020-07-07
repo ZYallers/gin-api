@@ -1,12 +1,12 @@
 package expvar
 
 import (
-	"encoding/json"
 	"expvar"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"runtime"
+	app "src/config"
 	"strconv"
 	"time"
 )
@@ -63,7 +63,7 @@ func getLastGCPauseTime() interface{} {
 	ms := new(runtime.MemStats)
 	statString := expvar.Get("memstats").String()
 	if statString != "" {
-		_ = json.Unmarshal([]byte(statString), ms)
+		_ = app.Json.Unmarshal([]byte(statString), ms)
 		if lastPause == 0 || lastPause != ms.NumGC {
 			gcPause = ms.PauseNs[(ms.NumGC+255)%256]
 			lastPause = ms.NumGC
@@ -108,7 +108,7 @@ func RunningStatsHandler(ctx *gin.Context) {
 			case "memstats":
 				if str, ok := value.(expvar.Func); ok {
 					ms := runtime.MemStats{}
-					_ = json.Unmarshal([]byte(str.String()), &ms)
+					_ = app.Json.Unmarshal([]byte(str.String()), &ms)
 					obj := make(map[string]interface{}, 30)
 					obj["Alloc:框架堆空间分配"] = sizeFormat(ms.Alloc)
 					obj["TotalAlloc:从服务开始运行至今分配器为分配的堆空间总和(只有增加,释放的时候不减少)"] = sizeFormat(ms.TotalAlloc)
@@ -138,7 +138,7 @@ func RunningStatsHandler(ctx *gin.Context) {
 					//obj["PauseNs:记录最近垃圾回收系统中断的时间"] = ms.PauseNs
 					//obj["PauseEnd:记录最近垃圾回收系统中断的时间开始点"] = ms.PauseEnd
 					//obj["BySize:内存分配器使用情况"] = ms.BySize
-					bt, _ := json.Marshal(obj)
+					bt, _ := app.Json.Marshal(obj)
 					_, _ = fmt.Fprintf(ctx.Writer, "%q: %s", "I:内存状态", string(bt))
 				} else {
 					_, _ = fmt.Fprintf(ctx.Writer, "%q: %v", key, value)

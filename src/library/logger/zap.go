@@ -39,7 +39,7 @@ func init() {
 	}
 	encoderConfig := zap.NewProductionEncoderConfig()
 	encoderConfig.EncodeTime = func(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
-		enc.AppendString(t.Format("2006.01.02 15:04:05.000"))
+		enc.AppendString(t.Format("2006/01/02 15:04:05.000"))
 	}
 	jsonEncoder = zapcore.NewJSONEncoder(encoderConfig)
 	lumberLogger = &lumberjack.Logger{MaxSize: fileMaxSize, MaxBackups: maxBackups, LocalTime: true, Compress: false}
@@ -100,6 +100,6 @@ func newLogger(filename string) (*zap.Logger, *lumberjack.Logger) {
 	hook := *lumberLogger
 	hook.Filename = filename
 	logger := zap.New(zapcore.NewCore(jsonEncoder, zapcore.AddSync(&hook), levelEnabler))
-	logger.Info("New logger succeed", zap.String("filename", hook.Filename))
+	logger.Info("new logger succeed", zap.String("filename", hook.Filename))
 	return logger, &hook
 }

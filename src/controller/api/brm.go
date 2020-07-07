@@ -62,3 +62,7 @@ func (c BrmController) GetUserSignStatus(ctx *gin.Context) {
 func (c BrmController) GetLogByBrmId(ctx *gin.Context) {
 	c.ServiceRewrite(ctx, imUri+tool.CurrentMethodName())
 }
+
+func (c BrmController) SendMsgByBrm(ctx *gin.Context) {
+	c.ServiceRewrite(ctx, imUri+tool.CurrentMethodName())
+}

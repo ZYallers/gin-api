@@ -72,3 +72,21 @@ func (c NoticeController) UpdateUserReadNum(ctx *gin.Context) {
 func (c NoticeController) UpdateUserRead(ctx *gin.Context) {
 	c.ServiceRewrite(ctx, noticeUri+tool.CurrentMethodName())
 }
+
+/**
+ * [updateUserRead 把用户所有未读的系统通知消息设为已读]
+ * @return [type] [description]
+ */
+func (c NoticeController) Alltoread(ctx *gin.Context) {
+	c.ServiceRewrite(ctx, noticeUri+tool.CurrentMethodName())
+}
+
+/**
+ * @Author:      caius
+ * @role:        role1,role2
+ * @DateTime:    2020-04-10 10:00:56
+ * @Description: 系统通知弹窗配置
+ */
+func (c NoticeController) SystemNoticePopup(ctx *gin.Context) {
+	c.ServiceRewrite(ctx, noticeUri+tool.CurrentMethodName())
+}

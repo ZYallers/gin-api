@@ -3,15 +3,18 @@ package tool
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	app "src/config"
 	"strings"
 	"time"
 )
+
+// 默认超时时间
+const defaultTimeout = 30 * time.Second
 
 // Request构造类
 type Request struct {
@@ -28,7 +31,7 @@ type Request struct {
 
 // 创建一个Request实例
 func NewRequest(url string) *Request {
-	return &Request{Url: url, client: http.DefaultClient, Timeout: 30 * time.Second}
+	return &Request{Url: url, client: &http.Client{Transport: &http.Transport{DisableKeepAlives: true}}, Timeout: defaultTimeout}
 }
 
 // 设置请求方法
@@ -51,13 +54,21 @@ func (r *Request) SetHeaders(headers map[string]string) *Request {
 
 // 将用户自定义请求头添加到http.Request实例上
 func (r *Request) setHeaders() *Request {
+	var foundConnection, foundUserAgent bool
 	for k, v := range r.Headers {
 		r.request.Header.Set(k, v)
+		switch k {
+		case "Connection":
+			foundConnection = true
+		case "User-Agent":
+			foundUserAgent = true
+		}
 	}
-	if r.request.Header.Get("Connection") == "" {
+	if !foundConnection {
+		r.request.Close = true
 		r.request.Header.Set("Connection", "close")
 	}
-	if r.request.Header.Get("User-Agent") == "" {
+	if !foundUserAgent {
 		r.request.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.119 Safari/537.36")
 	}
 	return r
@@ -101,30 +112,30 @@ func (r *Request) SetPostData(postData map[string]interface{}) *Request {
 
 // 发起get请求
 func (r *Request) Get() (*Response, error) {
-	return r.Send(r.Url, http.MethodGet)
+	return r.SetMethod(http.MethodGet).Send()
 }
 
 // 发起post请求
 func (r *Request) Post() (*Response, error) {
-	return r.Send(r.Url, http.MethodPost)
+	return r.SetMethod(http.MethodPost).Send()
 }
 
 // SetDialTimeOut
 func (r *Request) SetTimeOut(timeout time.Duration) *Request {
-	if timeout > 0 && timeout < 30*time.Second {
+	if timeout > 0 && timeout < defaultTimeout {
 		r.Timeout = timeout
 	}
 	return r
 }
 
 // 发起请求
-func (r *Request) Send(urls string, method string) (*Response, error) {
+func (r *Request) Send() (*Response, error) {
 	var body io.Reader
-	if postLen := len(r.PostData); postLen > 0 {
+	if len(r.PostData) > 0 {
 		if contentType, exist := r.Headers["Content-Type"]; exist {
 			switch strings.ToLower(contentType) {
 			case "application/json", "application/json;charset=utf-8":
-				if bts, err := json.Marshal(r.PostData); err != nil {
+				if bts, err := app.Json.Marshal(r.PostData); err != nil {
 					return nil, err
 				} else {
 					body = bytes.NewReader(bts)
@@ -139,7 +150,7 @@ func (r *Request) Send(urls string, method string) (*Response, error) {
 		}
 	}
 
-	if req, err := http.NewRequest(method, urls, body); err != nil {
+	if req, err := http.NewRequest(r.Method, r.Url, body); err != nil {
 		return nil, err
 	} else {
 		ctx, cancel := context.WithTimeout(context.Background(), r.Timeout)

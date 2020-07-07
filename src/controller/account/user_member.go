@@ -25,6 +25,10 @@ func UserMember() UserMemberController {
 		"GetEquityAllPreview": {ControllerNameFirstUpper: true},
 		"getEquityByGradeId":  {ControllerNameFirstUpper: true},
 		"CustomerService":     {ControllerNameFirstUpper: true},
+		"GetEquityPopup":      {ControllerNameFirstUpper: true},
+		"GetUnUseEquity":      {ControllerNameFirstUpper: true},
+		"GetAllGradeEquity":   {ControllerNameFirstUpper: true},
+		"DrawEquityByIds":     {ControllerNameFirstUpper: true},
 	}
 	return c
 }
@@ -67,5 +71,30 @@ func (c UserMemberController) getEquityByGradeId(ctx *gin.Context) {
 }
 
 func (c UserMemberController) CustomerService(ctx *gin.Context) {
+	c.ServiceRewrite(ctx, userMemberUri+tool.CurrentMethodName())
+}
+
+// 获取权益弹窗
+func (c UserMemberController) GetEquityPopup(ctx *gin.Context) {
+	c.ServiceRewrite(ctx, userMemberUri+tool.CurrentMethodName())
+}
+
+// 获取可报名的权益
+func (c UserMemberController) GetUnUseEquity(ctx *gin.Context) {
+	c.ServiceRewrite(ctx, userMemberUri+tool.CurrentMethodName())
+}
+
+// 获取所有会员等级权益及领取状况
+func (c UserMemberController) GetAllGradeEquity(ctx *gin.Context) {
+	c.ServiceRewrite(ctx, userMemberUri+tool.CurrentMethodName())
+}
+
+// 领取权益
+func (c UserMemberController) DrawEquityByIds(ctx *gin.Context) {
+	c.ServiceRewrite(ctx, userMemberUri+tool.CurrentMethodName())
+}
+
+// 判断用户是不是 一二线 新客户 450
+func (c UserMemberController) UserTag(ctx *gin.Context) {
 	c.ServiceRewrite(ctx, userMemberUri+tool.CurrentMethodName())
 }

@@ -114,3 +114,47 @@ func (c GeneController) GetYMRReportByCheckNum(ctx *gin.Context) {
 func (c GeneController) GetYMRGeneAgressByCheckNum(ctx *gin.Context) {
 	c.ServiceRewrite(ctx, geneUri+tool.CurrentMethodName())
 }
+
+func (c GeneController) GetGeneAgreementF4(ctx *gin.Context) {
+	c.ServiceRewrite(ctx, geneUri+tool.CurrentMethodName())
+}
+
+func (c GeneController) GetGeneF4ReportById(ctx *gin.Context) {
+	c.ServiceRewrite(ctx, geneUri+tool.CurrentMethodName())
+}
+
+func (c GeneController) GetReportF4Status(ctx *gin.Context) {
+	c.ServiceRewrite(ctx, geneUri+tool.CurrentMethodName())
+}
+
+func (c GeneController) SaveGeneAgreementF4(ctx *gin.Context) {
+	c.ServiceRewrite(ctx, geneUri+tool.CurrentMethodName())
+}
+
+func (c GeneController) GetGeneAgreeDefaultForm(ctx *gin.Context) {
+	c.ServiceRewrite(ctx, geneUri+tool.CurrentMethodName())
+}
+
+func (c GeneController) GetGeneAgreementF4ById(ctx *gin.Context) {
+	c.ServiceRewrite(ctx, geneUri+tool.CurrentMethodName())
+}
+
+func (c GeneController) GetGeneF4ReportByCheckNum(ctx *gin.Context) {
+	c.ServiceRewrite(ctx, geneUri+tool.CurrentMethodName())
+}
+
+func (c GeneController) ApplyGeneInterpret(ctx *gin.Context) {
+	c.ServiceRewrite(ctx, geneUri+tool.CurrentMethodName())
+}
+
+func (c GeneController) GetGeneInterpretData(ctx *gin.Context) {
+	c.ServiceRewrite(ctx, geneUri+tool.CurrentMethodName())
+}
+
+func (c GeneController) SaveInterpretAssess(ctx *gin.Context) {
+	c.ServiceRewrite(ctx, geneUri+tool.CurrentMethodName())
+}
+
+func (c GeneController) OnInterpretFinish(ctx *gin.Context) {
+	c.ServiceRewrite(ctx, geneUri+tool.CurrentMethodName())
+}

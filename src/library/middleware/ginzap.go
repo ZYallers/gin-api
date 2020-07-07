@@ -18,8 +18,8 @@ import (
 )
 
 const (
-	timeoutRecord  = 3 * time.Second
-	timeoutSendMsg = 10 * time.Second
+	logMaxSecond = 3 * time.Second
+	msgMaxSecond = 10 * time.Second
 )
 
 // Ginzap returns a gin.HandlerFunc (middleware) that logs requests using uber-go/zap.
@@ -28,37 +28,33 @@ const (
 func LoggerWithZap(zl *zap.Logger) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		start := time.Now()
-
 		ctx.Next()
-
-		runtime := time.Now().Sub(start)
-		ccp := ctx.Copy()
-		go func() {
-			reqstr := ctx.GetString(app.ReqStrKey)
-			if len(ccp.Errors) > 0 {
-				for _, err := range ccp.Errors.Errors() {
+		go func(ctx *gin.Context, runtime time.Duration) {
+			if len(ctx.Errors) > 0 {
+				reqStr := ctx.GetString(app.ReqStrKey)
+				for _, err := range ctx.Errors.Errors() {
 					zl.Error(err)
-					tool.SendDingTalkGroupMessage(ccp, err, reqstr, "", true)
+					tool.PushContextMessage(ctx, err, reqStr, "", true)
 				}
 			}
-			if runtime >= timeoutRecord {
-				logger.Use("timeout").Info(ccp.Request.URL.Path,
+			if runtime >= logMaxSecond {
+				logger.Use("timeout").Info(ctx.Request.URL.Path,
 					zap.Duration("runtime", runtime),
-					zap.String("proto", ccp.Request.Proto),
-					zap.String("method", ccp.Request.Method),
-					zap.String("host", ccp.Request.Host),
-					zap.String("url", ccp.Request.URL.String()),
-					zap.String("query", ccp.Request.URL.RawQuery),
-					zap.String("clientIP", ccp.ClientIP()),
-					zap.Any("header", ccp.Request.Header),
-					zap.String("request", reqstr),
+					zap.String("proto", ctx.Request.Proto),
+					zap.String("method", ctx.Request.Method),
+					zap.String("host", ctx.Request.Host),
+					zap.String("url", ctx.Request.URL.String()),
+					zap.String("query", ctx.Request.URL.RawQuery),
+					zap.String("clientIP", tool.ClientIP(ctx.ClientIP())),
+					zap.Any("header", ctx.Request.Header),
+					zap.String("request", ctx.GetString(app.ReqStrKey)),
 				)
 			}
-			if runtime > timeoutSendMsg {
-				msg := fmt.Sprintf("%s take %v to return, too slow", strings.TrimLeft(ccp.Request.URL.Path, "/"), runtime)
-				tool.SendDingTalkGroupMessage(ccp, msg, reqstr, "", false)
+			if runtime > msgMaxSecond {
+				msg := fmt.Sprintf("%s take %s to response, exceeding the maximum %s limit", strings.TrimLeft(ctx.Request.URL.Path, "/"), runtime, msgMaxSecond)
+				tool.PushContextMessage(ctx, msg, ctx.GetString(app.ReqStrKey), "", false)
 			}
-		}()
+		}(ctx.Copy(), time.Now().Sub(start))
 	}
 }
 
@@ -82,16 +78,13 @@ func RecoveryWithZap(zl *zap.Logger, stack bool) gin.HandlerFunc {
 					}
 				}
 
-				errMsg := fmt.Sprintf("%v", err)
-				reqstr := ctx.GetString(app.ReqStrKey)
-				debugStack := debug.Stack()
-				tool.SendDingTalkGroupMessage(ctx, errMsg, reqstr, string(debugStack), true)
+				errMsg := fmt.Sprintf("recovery from panic: %v", err)
+				reqStr := ctx.GetString(app.ReqStrKey)
+				stacks := string(debug.Stack())
+				tool.PushContextMessage(ctx, errMsg, reqStr, stacks, true)
 
 				if brokenPipe {
-					zl.Error(ctx.Request.URL.Path, zap.String("error", errMsg),
-						zap.String("request", reqstr),
-						zap.String("debugStack", string(debugStack)),
-					)
+					zl.Error(errMsg, zap.String("request", reqStr), zap.String("stack", stacks))
 					// If the connection is dead, we can't write a status to it.
 					_ = ctx.Error(err.(error)) // nolint: errcheck
 					ctx.Abort()
@@ -99,33 +92,23 @@ func RecoveryWithZap(zl *zap.Logger, stack bool) gin.HandlerFunc {
 				}
 
 				if stack {
-					go func() {
-						var bf bytes.Buffer
-						bf.WriteString(errMsg + "\r\n")
-						bf.WriteString("DebugStack: \r\n")
-						bf.Write(debugStack)
-						bf.WriteString("Request: \r\n" + reqstr)
-						zl.Error(bf.String())
-					}()
 					var buf bytes.Buffer
 					ctx.Header("Content-Type", "text/html;charset=utf-8")
 					buf.WriteString(`<pre style="font-family:Consolas,Menlo,monospace;line-height:1.5em;font-size:12px">`)
-					buf.WriteString("<h1>" + errMsg + "</h1><h2>DebugStack: </h2><p>")
-					buf.Write(debugStack)
-					buf.WriteString("</p><h2>Request: </h2><p>" + reqstr + "</p></pre>")
+					buf.WriteString("<h1>" + errMsg + "</h1><h2>stack: </h2><p>")
+					buf.WriteString(stacks)
+					buf.WriteString("</p><h2>request: </h2><p>" + reqStr + "</p></pre>")
 					ctx.String(http.StatusInternalServerError, buf.String())
 					ctx.Abort()
 				} else {
-					zl.Error("Recovery from panic", zap.String("error", errMsg),
-						zap.String("request", reqstr),
-						zap.String("debugStack", string(debugStack)),
-					)
-					ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusInternalServerError, "msg": "Server internal error"})
+					zl.Error(errMsg, zap.String("request", reqStr), zap.String("stack", stacks))
+					ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusInternalServerError, "msg": "server internal error"})
 				}
 			}
 		}()
-		reqbyte, _ := httputil.DumpRequest(ctx.Request, true)
-		ctx.Set(app.ReqStrKey, string(reqbyte))
+		
+		reqBytes, _ := httputil.DumpRequest(ctx.Request, true)
+		ctx.Set(app.ReqStrKey, string(reqBytes))
 		ctx.Next()
 	}
 }

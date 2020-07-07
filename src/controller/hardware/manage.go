@@ -10,26 +10,26 @@ type ManageController struct {
 	abs.Controller
 }
 
-const manageUri  = "http://hardware.hxsapp.com/api/Manage/"
+const manageUri = "http://hardware.hxsapp.com/api/Manage/"
 
-func Manage()  ManageController{
+func Manage() ManageController {
 	c := ManageController{}
 	c.Config = map[string]abs.MethodConfig{
-		"GetWeightRecord":    {ControllerNameFirstUpper: true},
-		"GetBodyScaleQuota":   {ControllerNameFirstUpper: true},
-		"CheckDevBind":   {ControllerNameFirstUpper: true},
+		"GetWeightRecord":   {ControllerNameFirstUpper: true},
+		"GetBodyScaleQuota": {ControllerNameFirstUpper: true},
+		"CheckDevBind":      {ControllerNameFirstUpper: true},
 	}
 	return c
 }
 
-func(c ManageController) GetWeightRecord(ctx *gin.Context)  {
+func (c ManageController) GetWeightRecord(ctx *gin.Context) {
 	c.ServiceRewrite(ctx, manageUri+tool.CurrentMethodName())
 }
 
-func(c ManageController) GetBodyScaleQuota(ctx *gin.Context)  {
+func (c ManageController) GetBodyScaleQuota(ctx *gin.Context) {
 	c.ServiceRewrite(ctx, manageUri+tool.CurrentMethodName())
 }
 
-func(c ManageController) CheckDevBind(ctx *gin.Context)  {
+func (c ManageController) CheckDevBind(ctx *gin.Context) {
 	c.ServiceRewrite(ctx, manageUri+tool.CurrentMethodName())
 }

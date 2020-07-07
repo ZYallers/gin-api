@@ -22,6 +22,7 @@ func (a ImModule) Group(eg *gin.Engine) {
 			im.Chat(),
 			im.Diet(),
 			im.YunXinIM(),
+			im.Error(),
 		)
 	}
 }

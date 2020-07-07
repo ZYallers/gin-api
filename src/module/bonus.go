@@ -1,10 +1,11 @@
 package module
 
 import (
-	"github.com/gin-gonic/gin"
 	"src/abs"
 	"src/controller/bonus"
 	"src/library/tool"
+
+	"github.com/gin-gonic/gin"
 )
 
 type BonusModule struct {
@@ -19,15 +20,21 @@ func (a BonusModule) Group(eg *gin.Engine) {
 	gp := eg.Group("/" + tool.CurrentFileName())
 	{
 		a.BindMethodOfController(gp,
+			bonus.AdviserRank(),
 			bonus.Bonus(),
 			bonus.CopyWord(),
-			bonus.OnlineService(),
 			bonus.DailyTask(),
+			bonus.GroupBusiness(),
 			bonus.Medal(),
+			bonus.NewOnlineService(),
+			bonus.NewsTip(),
+			bonus.OnlineService(),
 			bonus.UserBean(),
 			bonus.UserClockHealth(),
+			bonus.UserGrowth(),
 			bonus.UserScore(),
 			bonus.UserSign(),
+			bonus.WeightManagementUri(),
 		)
 	}
 }

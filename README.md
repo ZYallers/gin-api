@@ -1,6 +1,6 @@
-# gin-api       
+# gin-api.hxsapp.com
 基于Gin框架搭建，专门为app接口开发而设计的一个API统一网关。
-  
+
 Gin是一个用Go（Golang）编写的Web框架。
 它具有类似马提尼的API，具有更好的性能，由于httprouter，速度提高了40倍。
 如果你需要表现和良好的生产力，你会爱上Gin。
@@ -39,7 +39,7 @@ Gin 为 JSON，XML 和 HTML 渲染提供了易于使用的 API。
 ### 要求
 - Go 1.11 及以上版本
 
-### 1. 进到项目根目录
+### 1. cd 进到项目根目录
 ```bash
 $ cd gin-api
 ```
@@ -51,7 +51,7 @@ $ ./bin/develop.sh restart
 ```
 
 > 提醒事项：
-- 此脚本运行方式只适合开发阶段
+- 此脚本运行方式只适合开发阶段，生产环境请用 `produce.sh` 工具脚本，详细命令请执行 `produce.sh help`
 
 ## 资料
 - Gin官网：https://gin-gonic.com

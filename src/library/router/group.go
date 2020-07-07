@@ -42,23 +42,22 @@ func (r *router) Module(eg *gin.Engine, modules ...interface{}) *router {
 // adds handlers for NoRoute. It return a 404 code by default.
 func (r *router) noRouteHandlerRegister() {
 	r.engine.NoRoute(func(ctx *gin.Context) {
-		ccp := ctx.Copy()
-		go func() {
-			reqstr := ctx.GetString(app.ReqStrKey)
-			path := ccp.Request.URL.Path
+		go func(ctx *gin.Context) {
+			reqStr := ctx.GetString(app.ReqStrKey)
+			path := ctx.Request.URL.Path
 			logger.Use("404").Info(path,
-				zap.String("proto", ccp.Request.Proto),
-				zap.String("method", ccp.Request.Method),
-				zap.String("host", ccp.Request.Host),
-				zap.String("url", ccp.Request.URL.String()),
-				zap.String("query", ccp.Request.URL.RawQuery),
-				zap.String("clientIP", ccp.ClientIP()),
-				zap.Any("header", ccp.Request.Header),
-				zap.String("request", reqstr),
+				zap.String("proto", ctx.Request.Proto),
+				zap.String("method", ctx.Request.Method),
+				zap.String("host", ctx.Request.Host),
+				zap.String("url", ctx.Request.URL.String()),
+				zap.String("query", ctx.Request.URL.RawQuery),
+				zap.String("clientIP", tool.ClientIP(ctx.ClientIP())),
+				zap.Any("header", ctx.Request.Header),
+				zap.String("request", reqStr),
 			)
-			tool.SendDingTalkGroupMessage(ccp, strings.TrimLeft(path, "/")+" page not found", reqstr, "", false)
-		}()
-		ctx.AbortWithStatusJSON(http.StatusNotFound, gin.H{"code": http.StatusNotFound, "msg": "Page not found"})
+			tool.PushContextMessage(ctx, strings.TrimLeft(path, "/")+" page not found", reqStr, "", false)
+		}(ctx.Copy())
+		ctx.AbortWithStatusJSON(http.StatusNotFound, gin.H{"code": http.StatusNotFound, "msg": "page not found"})
 	})
 }
 
@@ -78,6 +77,8 @@ func (r *router) GlobalHandlerRegister() {
 		module.Im(),
 		module.Slim(),
 		module.Test(),
+		module.Live(),
+		module.Bbs(),
 	)
 
 	// 服务健康检查

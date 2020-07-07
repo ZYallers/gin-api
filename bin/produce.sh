@@ -124,11 +124,15 @@ buildFun(){
 
     cd ./src
     if [[ "$dlv" ]] ; then
-      echoFun 'build with -gcflags "all=-N -l"' tip
-      go build -gcflags "all=-N -l" -o ../bin/${name}_tmp ./main.go
+        echoFun 'build with -gcflags "all=-N -l"' tip
+        CGO_ENABLED=0 go build -a -installsuffix cgo -ldflags '-w' -gcflags 'all=-N -l' -i -o ../bin/${name}_tmp ./main.go
     else
-      echoFun "No extra build options" tip
-      go build -o ../bin/${name}_tmp ./main.go
+        echoFun "No extra build options" tip
+        ### build编译参数参考资料：
+        # 无依赖编译：https://blog.csdn.net/weixin_42506905/article/details/93135684
+        # 参数详解：https://blog.csdn.net/zl1zl2zl3/article/details/83374131
+        # ldflags参数：https://blog.csdn.net/javaxflinux/article/details/89177863
+        CGO_ENABLED=0 go build -a -installsuffix cgo -ldflags '-w' -i -o ../bin/${name}_tmp ./main.go
     fi
 
     cd ../
@@ -176,7 +180,7 @@ reloadFun(){
     # 防止Jenkins默认会在Build结束后Kill掉所有的衍生进程
     export BUILD_ID=dontKillMe
 
-    export GIN_MODE=release
+    # export GIN_MODE=release
     nohup ./bin/${name} -http.addr=${httpServerAddr} >> ${logfile} 2>&1 &
 
     echoFun "runner [$httpServerAddr] is reloaded, pid: `echo $!`" ok
@@ -211,7 +215,7 @@ quitFun(){
 }
 
 while getopts ':d' OPT; do
-    case $OPT in
+    case ${OPT} in
         d)
             # 配合 delve 使用, http://wiki.sys.hxsapp.net/pages/viewpage.action?pageId=21349181
             dlv=d

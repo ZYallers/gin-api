@@ -1,10 +1,11 @@
 package module
 
 import (
-	"github.com/gin-gonic/gin"
 	"src/abs"
 	"src/controller/mall"
 	"src/library/tool"
+
+	"github.com/gin-gonic/gin"
 )
 
 type MallModule struct {
@@ -40,12 +41,14 @@ func (a MallModule) Group(eg *gin.Engine) {
 			mall.Order(),
 			mall.Prepayment(),
 			mall.Reward(),
+			mall.ShareEarning(),
 			mall.Spike(),
 			mall.UniformPay(),
 			mall.UserAccount(),
 			mall.Video(),
 			mall.Alipay(),
 			mall.Wxpay(),
+			mall.Course(),
 		)
 	}
 }

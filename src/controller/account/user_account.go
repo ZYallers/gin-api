@@ -22,6 +22,7 @@ func UserAccount() UserAccountController {
 		"GetUserInfoByWeChatUnionId": {ControllerNameFirstUpper: true},
 		"CallbackTIm":                {ControllerNameFirstUpper: true, HttpMethods: []string{http.MethodPut, http.MethodPost, http.MethodGet}},
 		"RegisterServerTim":          {ControllerNameFirstUpper: true},
+		"ModifyMobile":               {ControllerNameFirstUpper: true},
 	}
 	return c
 }

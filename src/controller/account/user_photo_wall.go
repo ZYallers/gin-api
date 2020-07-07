@@ -40,3 +40,7 @@ func (c UserPhotoWallController) PhotoWall(ctx *gin.Context) {
 func (c UserPhotoWallController) GetPhotoWall(ctx *gin.Context) {
 	c.ServiceRewrite(ctx, userPhotoWallUri+tool.CurrentMethodName())
 }
+
+func (c UserPhotoWallController) UserPhotograph(ctx *gin.Context) {
+	c.ServiceRewrite(ctx, userPhotoWallUri+tool.CurrentMethodName())
+}

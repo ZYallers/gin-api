@@ -34,6 +34,7 @@ func (a ContentModule) Group(eg *gin.Engine) {
 			content.Cases(),
 			content.Fitness(),
 			content.Gymnastics(),
+			content.Ncov(),
 			media,
 		)
 	}

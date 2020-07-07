@@ -110,6 +110,7 @@ func (a SlimModule) Group(eg *gin.Engine) {
 			slimBong,
 			slimGene,
 			slim.Sleep(),
+			slim.HwOnlineServer(),
 		)
 	}
 }

@@ -98,7 +98,7 @@ syncFun(){
         cd ./github.com/gravityblast
         git clone -b master https://github.com/gravityblast/fresh.git
         cd ../../
-        go build -x -o ../bin/${freshName} ./github.com/gravityblast/fresh/main.go
+        CGO_ENABLED=0 go build -a -installsuffix cgo -ldflags '-w' -i -o ../bin/${freshName} ./github.com/gravityblast/fresh/main.go
         if [[ ! -f "../bin/$freshName" ]];then
             echoFun "build fresh failed" err
             exit 1
@@ -147,8 +147,8 @@ restartFun(){
     stopFun ${freshName} ${httpServerAddr}
 
     cd ./src
-    export GIN_MODE=release
-    export GIN_DEBUG_STACK=on
+    #export GIN_MODE=release
+    #export GIN_DEBUG_STACK=on
     nohup ../bin/${freshName} -c fresh.conf >> ${logfile} 2>&1 &
 
     echoFun "fresh is restarted" ok

@@ -18,7 +18,7 @@ func Config() ConfigController {
 		"SaveUserConfig":   {ControllerNameFirstUpper: true},
 		"GetUserConfig":    {ControllerNameFirstUpper: true},
 		"CheckShoesIsBind": {ControllerNameFirstUpper: true},
-		"GetVideo": {ControllerNameFirstUpper: true},
+		"GetVideo":         {ControllerNameFirstUpper: true},
 		"GetHardwareToast": {ControllerNameFirstUpper: true},
 	}
 	return c

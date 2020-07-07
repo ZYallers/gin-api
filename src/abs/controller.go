@@ -3,18 +3,19 @@ package abs
 import (
 	"bytes"
 	"context"
-	"encoding/json"
-	"github.com/gin-gonic/gin"
-	"go.uber.org/zap"
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	app "src/config"
 	"src/library/logger"
 	"src/library/tool"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
 type Controller struct {
@@ -25,6 +26,7 @@ type MethodConfig struct {
 	HttpMethods              []string
 	ControllerNameFirstUpper bool
 	MethodNameFirstUpper     bool
+	Rest                     string
 }
 
 func (c Controller) ServiceRewrite(ctx *gin.Context, url string, options ...interface{}) {
@@ -33,7 +35,7 @@ func (c Controller) ServiceRewrite(ctx *gin.Context, url string, options ...inte
 		return
 	}
 
-	timeout := 10 * time.Second
+	timeout := time.Second * 10
 	if len(options) > 0 {
 		timeout = options[0].(time.Duration)
 	}
@@ -44,7 +46,7 @@ func (c Controller) ServiceRewrite(ctx *gin.Context, url string, options ...inte
 		resp *http.Response
 	)
 
-	if req, err = http.NewRequest(http.MethodPost, url, ctx.Request.Body); err != nil {
+	if req, err = http.NewRequest(ctx.Request.Method, url, ctx.Request.Body); err != nil {
 		go logger.Use("rewrite").Error("http.NewRequest error: " + err.Error())
 		ctx.AbortWithStatusJSON(http.StatusOK, gin.H{"code": http.StatusInternalServerError, "msg": "http.NewRequest error: " + err.Error()})
 		return
@@ -53,40 +55,55 @@ func (c Controller) ServiceRewrite(ctx *gin.Context, url string, options ...inte
 	req.URL.RawQuery = ctx.Request.URL.RawQuery
 
 	req.Header = ctx.Request.Header
+	// 主动断开，响应更快，占用资源减少！
 	req.Close = true
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Set("Connection", "close")
+	req.Header.Add("Connection", "close")
+	// 不要用编码类型去压缩，要不然body无法解析！
 	req.Header.Del("Accept-Encoding")
+	// 排查测试环境问题，临时使用！
+	if app.ResetXForwardFor {
+		req.Header.Set("X-Forwarded-For", ctx.ClientIP())
+	}
+	req.Header.Set("X-Real-Ip", ctx.ClientIP())
+	req.Header.Add("User-Agent", "Go-http-client/1.1")
 
 	ctxt, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	if resp, err = http.DefaultClient.Do(req.WithContext(ctxt)); err != nil {
-		go logger.Use("rewrite").Error("http.DefaultClient.Do error: " + err.Error())
+	client := http.Client{Transport: &http.Transport{DisableKeepAlives: true}}
+	if resp, err = client.Do(req.WithContext(ctxt)); err != nil {
+		go logger.Use("rewrite").Error("http.Client.Do error: " + err.Error())
 		ctx.AbortWithStatusJSON(http.StatusOK, gin.H{"code": http.StatusInternalServerError, "msg": "http.DefaultClient.Do error: " + err.Error()})
 		return
 	}
 
 	defer resp.Body.Close()
 
-	writeHeader := ctx.Writer.Header()
 	for k, v := range resp.Header {
-		writeHeader.Del(k)
+		ctx.Writer.Header().Del(k)
 		for _, v2 := range v {
-			writeHeader.Add(k, v2)
+			ctx.Writer.Header().Add(k, v2)
 		}
 	}
-	writeHeader.Set("Connection", "close")
 
-	// TODO::为方便本地测试加的，如果在本地IP+Port访问情况下，没有压缩程序会无法返回内容给前端
-	if ctx.Request.Host[0:9] == "127.0.0.1" {
-		writeHeader.Del("Content-Encoding")
+	// 如果在本地IP+Port访问情况下，没有压缩程序会无法返回内容给前端，为方便本地测试加的！
+	if strings.Contains(ctx.Request.Host, "127.0.0.1") {
+		ctx.Writer.Header().Del("Content-Encoding")
 	}
 
 	if respBodyBytes, err := ioutil.ReadAll(resp.Body); err != nil {
 		go logger.Use("rewrite").Error("ioutil.ReadAll error: " + err.Error())
 		ctx.AbortWithStatusJSON(http.StatusOK, gin.H{"code": http.StatusInternalServerError, "msg": "ioutil.ReadAll error: " + err.Error()})
 	} else {
+		go func(ctx *gin.Context, bts []byte) {
+			if strings.Contains(resp.Header.Get("Content-Type"), "application/json") {
+				var data interface{}
+				if err := app.Json.Unmarshal(bts, &data); err != nil {
+					tool.PushContextMessage(ctx, "response content type is json, but unmarshal fails",
+						ctx.GetString(app.ReqStrKey), string(bts), true)
+				}
+			}
+		}(ctx.Copy(), respBodyBytes)
 		ctx.String(http.StatusOK, string(respBodyBytes))
 		ctx.AbortWithStatus(http.StatusOK)
 	}
@@ -151,9 +168,11 @@ func (c Controller) ServiceMultiRewrite(ctx *gin.Context, urls string, key strin
 		chanNum    uint32
 	)
 
+	//logger.Use("multi-info").Info("", zap.String("key", key), zap.String("value", keyValue), zap.Any("corNum", corNum))
+
 	resChan := make(chan interface{}, corNum)
 	dataMap := make(map[string]interface{}, keySliceLen) // 接口返回的 json 结果是 map 结构的时候使用
-	var dataSlice []interface{} // 接口返回的 json 结果是 slice 结构的时候使用
+	var dataSlice []interface{}                          // 接口返回的 json 结果是 slice 结构的时候使用
 
 	ccp := ctx.Copy()
 	_ = ccp.Request.ParseForm()
@@ -200,6 +219,7 @@ func (c Controller) ServiceMultiRewrite(ctx *gin.Context, urls string, key strin
 				}
 				postForm.Set(key, keyStr)
 				req.Body = ioutil.NopCloser(bytes.NewBufferString(postForm.Encode()))
+				req.URL.RawQuery = ccp.Request.URL.RawQuery
 			case http.MethodGet:
 				rawQuery := url.Values{}
 				for k, v := range ccp.Request.URL.Query() {
@@ -217,15 +237,22 @@ func (c Controller) ServiceMultiRewrite(ctx *gin.Context, urls string, key strin
 					req.Header.Add(k, v2)
 				}
 			}
-			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-			req.Header.Set("Connection", "close")
-			req.Header.Del("Accept-Encoding")
+			// 主动断开，响应更快，占用资源减少！
 			req.Close = true
+			req.Header.Add("Connection", "close")
+			// 不要用编码类型去压缩，要不然body无法解析！
+			req.Header.Del("Accept-Encoding")
+			// 排查测试环境问题，临时使用！
+			if app.ResetXForwardFor {
+				req.Header.Set("X-Forwarded-For", ccp.ClientIP())
+			}
+			req.Header.Add("User-Agent", "Go-http-client/1.1")
 
 			ctxt, cancel := context.WithTimeout(context.Background(), timeout)
 			defer cancel()
 
-			if resp, err = new(http.Client).Do(req.WithContext(ctxt)); err != nil {
+			client := http.Client{Transport: &http.Transport{DisableKeepAlives: true}}
+			if resp, err = client.Do(req.WithContext(ctxt)); err != nil {
 				go logger.Use("multi-rewrite").Error("http.DefaultClient.Do error: " + err.Error())
 				return
 			}
@@ -245,7 +272,8 @@ func (c Controller) ServiceMultiRewrite(ctx *gin.Context, urls string, key strin
 				return
 			}
 			var res map[string]interface{}
-			if err := json.Unmarshal(body, &res); err != nil {
+			//logger.Use("multi-body").Info("body string", zap.String("body", string(body)))
+			if err := app.Json.Unmarshal(body, &res); err != nil {
 				go logger.Use("multi-rewrite").Error("json.Unmarshal", zap.Error(err), zap.String("body", string(body)))
 				return
 			}
@@ -258,7 +286,7 @@ func (c Controller) ServiceMultiRewrite(ctx *gin.Context, urls string, key strin
 GOTO:
 	for {
 		select {
-		case <-time.After(timeout + 100*time.Millisecond):
+		case <-time.After(timeout + time.Millisecond*100):
 			tool.SafeCloseChan(resChan)
 			break GOTO
 		case res := <-resChan:
@@ -279,18 +307,16 @@ GOTO:
 		}
 	}
 
-	writeHeader := ctx.Writer.Header()
 	for k, v := range respHeader {
-		writeHeader.Del(k)
+		ctx.Writer.Header().Del(k)
 		for _, v2 := range v {
-			writeHeader.Add(k, v2)
+			ctx.Writer.Header().Add(k, v2)
 		}
 	}
-	writeHeader.Set("Connection", "close")
 
-	// TODO::为方便本地测试加的，如果在本地IP+Port访问情况下，没有压缩程序会无法返回内容给前端
-	if ctx.Request.Host[0:9] == "127.0.0.1" {
-		writeHeader.Del("Content-Encoding")
+	// 如果在本地IP+Port访问情况下，没有压缩程序会无法返回内容给前端，为方便本地测试加的！
+	if strings.Contains(ctx.Request.Host, "127.0.0.1") {
+		ctx.Writer.Header().Del("Content-Encoding")
 	}
 
 	if len(dataSlice) > 0 {

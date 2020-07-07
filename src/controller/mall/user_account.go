@@ -1,9 +1,10 @@
 package mall
 
 import (
-	"github.com/gin-gonic/gin"
 	"src/abs"
 	"src/library/tool"
+
+	"github.com/gin-gonic/gin"
 )
 
 type UserAccountController struct {
@@ -15,10 +16,11 @@ const userAccountUri = "http://mall.hxsapp.com/base/UserAccount/"
 func UserAccount() UserAccountController {
 	c := UserAccountController{}
 	c.Config = map[string]abs.MethodConfig{
-		"GetUserAccount": {ControllerNameFirstUpper: true},
-		"GetAccountInfo": {ControllerNameFirstUpper: true},
-		"GetAccountLog":  {ControllerNameFirstUpper: true},
-		"GetBalanceLog":  {ControllerNameFirstUpper: true},
+		"GetUserAccount":    {ControllerNameFirstUpper: true},
+		"GetAccountInfo":    {ControllerNameFirstUpper: true},
+		"GetAccountLog":     {ControllerNameFirstUpper: true},
+		"GetBalanceLog":     {ControllerNameFirstUpper: true},
+		"WebGetAccountInfo": {ControllerNameFirstUpper: true},
 	}
 	return c
 }
@@ -28,6 +30,10 @@ func (c UserAccountController) GetUserAccount(ctx *gin.Context) {
 }
 
 func (c UserAccountController) GetAccountInfo(ctx *gin.Context) {
+	c.ServiceRewrite(ctx, userAccountUri+tool.CurrentMethodName())
+}
+
+func (c UserAccountController) WebGetAccountInfo(ctx *gin.Context) {
 	c.ServiceRewrite(ctx, userAccountUri+tool.CurrentMethodName())
 }
 

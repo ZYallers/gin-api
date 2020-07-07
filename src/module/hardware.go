@@ -25,6 +25,8 @@ func (a HardwareModule) Group(eg *gin.Engine) {
 			hardware.Manage(),
 			hardware.Kscale(),
 			hardware.Massage(),
+			hardware.Abdominal(),
+			hardware.WeiMi(),
 		)
 	}
 }

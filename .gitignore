@@ -1,9 +1,11 @@
-bin
+.idea
+bin/*
 !bin/README.md
 !bin/develop.sh
 !bin/produce.sh
-pkg
-!pkg/README.md
+log/*
+!log/README.md
 src/vendor
-log
-.idea
+pkg
+*code-workspace
+log/
