@@ -7,5 +7,3 @@ log/*
 !log/README.md
 src/vendor
 pkg
-*code-workspace
-log/
