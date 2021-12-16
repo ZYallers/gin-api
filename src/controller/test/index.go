@@ -1,50 +1,75 @@
 package test
 
 import (
-	"github.com/gin-gonic/gin"
+	"fmt"
 	"net/http"
-	"src/abs"
-	app "src/config"
-	"src/library/tool"
+	"src/config/env"
+	"src/libraries/core"
+	"src/libraries/handler"
+	"src/libraries/helper"
+	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
-type IndexController struct {
-	abs.Controller
+type Index struct {
+	core.Controller
 }
 
-func Index() IndexController {
-	i := IndexController{}
-	i.Config = map[string]abs.MethodConfig{
-		"Isok":   {HttpMethods: []string{http.MethodGet, http.MethodPost}},
-		"MyRest": {HttpMethods: []string{http.MethodGet}, Rest: "my/rest"},
+func (i *Index) Init() core.MtdCfg {
+	i.Config = core.MtdCfg{
+		"Isok":        {Http: []string{http.MethodGet, http.MethodPost}, Func: i.Isok, Rest: "isok"},
+		"SwaggerDocs": {Http: []string{http.MethodGet}, Func: i.SwaggerDocs, Rest: "swag/docs"},
+		"BaseCheck":   {Http: []string{"GET", "POST"}, Func: i.BaseCheck, Rest: "base/check"},
 	}
-	return i
+	return i.Config
 }
 
-func (i IndexController) Isok(ctx *gin.Context) {
+// @title /test/index/isok
+// @Summary 检测服务是否正常
+// @Tags test,cloud
+// @Accept json
+// @Produce json
+// @Router /test/isok [get]
+// @Author cloud 2020/9/7 下午4:25
+// @Update cloud 2020/9/7 下午4:25
+// @Success 200 {string} json "{"code":200,"msg":"ok", "data":{}}"
+func (i *Index) Isok(ctx *gin.Context) {
+	reqStr, _ := ctx.Get(env.ReqStrKey)
 	ctx.AbortWithStatusJSON(http.StatusOK, gin.H{
 		"code": http.StatusOK,
-		"msg":  "",
+		"msg":  "OK",
 		"data": gin.H{
-			"mode":        gin.Mode(),
-			"debug_stack": app.DebugStack,
-			"system_ip":   tool.SystemIP(),
-			"client_ip":   tool.ClientIP(ctx.ClientIP()),
-			"public_ip":   tool.PublicIP(),
-			"keys":        ctx.Keys,
+			"mode":      gin.Mode(),
+			"system_ip": helper.SystemIP(),
+			"request":   reqStr,
 		},
 	})
 }
 
-func (i IndexController) MyRest(ctx *gin.Context) {
-	ctx.AbortWithStatusJSON(http.StatusOK, gin.H{"path": ctx.Request.URL})
+// @title /test/swag/docs
+// @Summary 获取微服务swagger.json
+// @Tags test,cloud
+// @Accept json
+// @Produce json
+// @Router /test/swag/docs [get]
+// @Author cloud 2020/9/7 下午4:28
+// @Update cloud 2020/9/7 下午4:28
+// @Param m query string true "微服务"
+// @Success 200 {string} json "{"code":200,"msg":"ok", "data":{}}"
+func (i *Index) SwaggerDocs(ctx *gin.Context) {
+	module := ctx.DefaultQuery("m", "")
+	if module == "" {
+		ctx.AbortWithStatusJSON(http.StatusOK, gin.H{"code": http.StatusBadRequest, "msg": `the required parameter "m" is missing`})
+		return
+	}
+	if module == "api" {
+		handler.SwagDocHandler(ctx)
+		return
+	}
+	i.ServiceRewrite(ctx, fmt.Sprintf("http://%s.hxsapp.com/swag/json", module), 3*time.Second)
 }
 
-/*func (i IndexController) Multi(ctx *gin.Context) {
-	//i.ServiceMultiRewrite(ctx, "http://account.hxsapp.com/user/userInfo/getUserInfo", "user_id", 10)
-	//i.ServiceMultiRewrite(ctx, "http://im.hxsapp.com/api/Brm/getUserInfoByOpenImAccount", "openim_account", 20)
-}*/
-
-func (i IndexController) Demo(ctx *gin.Context) {
-	i.ServiceRewrite(ctx, "http://base.hxsapp.com/base/common/testError")
+func (i *Index) BaseCheck(ctx *gin.Context) {
+	i.RPCXService(ctx, "rpcx-base", "test/check")
 }

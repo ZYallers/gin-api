@@ -1,9 +1,13 @@
 .idea
-bin/*
+.vscode
+*code-workspace
+pkg
+doc
+bin
 !bin/README.md
 !bin/develop.sh
 !bin/produce.sh
-log/*
+log
 !log/README.md
 src/vendor
-pkg
+src/go.sum

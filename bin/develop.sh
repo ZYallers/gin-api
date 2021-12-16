@@ -1,9 +1,10 @@
 #!/bin/bash
 
+appConfigFile="$(pwd)/src/config/app/base.go"
+freshName=""
 name=""
 httpServerAddr=""
 logDir=""
-freshName=""
 
 echoFun(){
     str=$1
@@ -33,33 +34,33 @@ helpFun(){
     echoFun "    sync                                    同步服务vendor资源" tip
     echoFun "    restart                                 重启服务" tip
     echoFun "    stop                                    终止服务" tip
+    echoFun "    swag_init                               swag init(同步生成接口文档)" tip
     echoFun "    help                                    查看命令的帮助信息" tip
     echoFun "有关某个操作的详细信息，请使用 help 命令查看" tip
     exit 0
 }
 
 initFun(){
-    appfile="`pwd`/src/config/app.go"
-    if [[ ! -f "$appfile" ]];then
-        echoFun "file [$appfile] is not exist" err
+    if [[ ! -f "$appConfigFile" ]];then
+        echoFun "file [$appConfigFile] is not exist" err
         exit 1
     fi
 
-    name=`cat ${appfile}|grep "Name"|awk -F '"' '{print $2}'`
+    name=`cat ${appConfigFile}|grep "Name"|awk -F '"' '{print $2}'`
     if [[ "$name" == "" ]];then
         echoFun "name is null" err
         exit 1
     fi
     echoFun "name: $name" tip
 
-    httpServerAddr=`cat $appfile|grep "HttpServerDefaultAddr"|awk -F '"' '{print $2}'`
+    httpServerAddr=`cat ${appConfigFile}|grep "HttpServerDefaultAddr"|awk -F '"' '{print $2}'`
     if [[ "$httpServerAddr" == "" ]];then
         echoFun "httpServerAddr is empty" err
         exit 1
     fi
     echoFun "httpServerAddr: $httpServerAddr" tip
 
-    logDir=`cat ${appfile}|grep "LogDir"|awk -F '"' '{print $2}'`
+    logDir=`cat ${appConfigFile}|grep "LogDir"|awk -F '"' '{print $2}'`
     if [[ "$logDir" == "" ]];then
         echoFun "logDir is null" err
         exit 1
@@ -80,7 +81,7 @@ statusFun(){
 
     echoFun "ps process:" title
     if [[ `pgrep ${freshName}|wc -l` -gt 0 ]];then
-        ps -p $(pgrep ${freshName}|sed ':t;N;s/\n/,/;b t') -o user,pid,ppid,%cpu,%mem,vsz,rss,tty,stat,start,time,command
+        ps -p $(pgrep ${name}|sed ':t;N;s/\n/,/;b t'|sed -n '1h;1!H;${g;s/\n/,/g;p;}') -o user,pid,ppid,%cpu,%mem,vsz,rss,tty,stat,start,time,command
     fi
     echoFun "lsof process:" title
     port=`echo ${httpServerAddr}|awk -F ':' '{print $2}'`
@@ -89,27 +90,31 @@ statusFun(){
 
 syncFun(){
     initFun
-    cd ./src
-    export GOPROXY=https://goproxy.cn
 
-    echoFun "get fresh:" title
+    echoFun "go get fresh:" title
     if [[ ! -f "../bin/$freshName" ]];then
-        mkdir -p ./github.com/gravityblast
-        cd ./github.com/gravityblast
-        git clone -b master https://github.com/gravityblast/fresh.git
-        cd ../../
-        CGO_ENABLED=0 go build -a -installsuffix cgo -ldflags '-w' -i -o ../bin/${freshName} ./github.com/gravityblast/fresh/main.go
-        if [[ ! -f "../bin/$freshName" ]];then
-            echoFun "build fresh failed" err
+        if [[ ! -f "$GOPATH/bin/fresh" ]];then
+            nowPwd="$(pwd)"
+            cd $GOPATH
+            go get -v github.com/pilu/fresh
+            if [[ ! -f "./bin/fresh" ]];then
+                echoFun "go get fresh command failed" err
+                exit 1
+            fi
+            cd ${nowPwd}
+        fi
+        cp -f $GOPATH/bin/fresh ./bin/${freshName}
+        if [[ ! -f "./bin/${freshName}" ]];then
+            echoFun "cp fresh failed" err
             exit 1
         fi
-        rm -rf ./github.com
-        echoFun "get fresh finished" ok
+        echoFun "go get fresh finished" ok
     else
-        echoFun "fresh is getted" tip
+        echoFun "fresh have got" tip
     fi
 
     echoFun "go mod vendor:" title
+    cd ./src
     if [[ ! -f "./go.mod" ]];then
         go mod init src
     fi
@@ -129,11 +134,16 @@ restartFun(){
         exit 1
     fi
 
+    # 日志目录
+    if [[ ! -d "$logDir" ]];then
+        mkdir -p ${logDir}
+    fi
     if [[ ! -d "$logDir" ]];then
         echoFun "logDir [$logDir] is not exist" err
         exit 1
     fi
 
+    # 日志文件
     logfile=${logDir}/${name}.log
     if [[ ! -f "$logfile" ]];then
         touch ${logfile}
@@ -147,8 +157,10 @@ restartFun(){
     stopFun ${freshName} ${httpServerAddr}
 
     cd ./src
-    #export GIN_MODE=release
-    #export GIN_DEBUG_STACK=on
+
+    # 防止Jenkins默认会在Build结束后Kill掉所有的衍生进程
+    export BUILD_ID=dontKillMe
+
     nohup ../bin/${freshName} -c fresh.conf >> ${logfile} 2>&1 &
 
     echoFun "fresh is restarted" ok
@@ -184,6 +196,21 @@ stopFun(){
     echoFun "stop finished" ok
 }
 
+swagInitFun() {
+    cd ./src
+    echoFun "pwd: $(pwd)" tip
+
+    $GOPATH/bin/swag init -d ./controller -g ../main.go -o ../doc
+
+    if [[ -f "../doc/docs.go" ]];then
+        rm -f ../doc/docs.go
+    fi
+
+    if [[ -f "../doc/swagger.yaml" ]];then
+        rm -f ../doc/swagger.yaml
+    fi
+}
+
 case $1 in
         status)
             statusFun
@@ -197,6 +224,9 @@ case $1 in
         ;;
         restart)
             restartFun
+        ;;
+        swag_init)
+           swagInitFun
         ;;
         *)
             helpFun

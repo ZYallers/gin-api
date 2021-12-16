@@ -1,4 +1,4 @@
-# gin-api.hxsapp.com
+# gin-api.zyall.com
 基于Gin框架搭建，专门为app接口开发而设计的一个API统一网关。
 
 Gin是一个用Go（Golang）编写的Web框架。
@@ -37,7 +37,7 @@ Gin 为 JSON，XML 和 HTML 渲染提供了易于使用的 API。
 ## 部署
 
 ### 要求
-- Go 1.11 及以上版本
+- Go 1.12 及以上版本
 
 ### 1. cd 进到项目根目录
 ```bash

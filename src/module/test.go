@@ -2,22 +2,16 @@ package module
 
 import (
 	"github.com/gin-gonic/gin"
-	"src/abs"
 	"src/controller/test"
-	"src/library/tool"
+	"src/libraries/core"
+	"src/libraries/helper"
 )
 
-type TestModule struct {
-	abs.Module
+type Test struct {
+	core.Module
 }
 
-func Test() TestModule {
-	return TestModule{}
-}
-
-func (t TestModule) Group(eg *gin.Engine) {
-	gp := eg.Group("/" + tool.CurrentFileName())
-	{
-		t.BindMethodOfController(gp, test.Index())
-	}
+func (t *Test) Group(eg *gin.Engine) {
+	moduleName := helper.CurrentFileName()
+	t.BindMethodOfController(eg, moduleName, &test.Index{})
 }
